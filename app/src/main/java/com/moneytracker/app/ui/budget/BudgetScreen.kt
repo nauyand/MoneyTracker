@@ -3,6 +3,7 @@ package com.moneytracker.app.ui.budget
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.foundation.border
+import androidx.compose.animation.core.animateFloat
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
