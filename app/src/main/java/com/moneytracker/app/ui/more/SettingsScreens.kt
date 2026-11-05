@@ -101,6 +101,10 @@ fun SettingsScreen(s: Snapshot, nav: NavHostController) {
                 Spacer(Modifier.height(8.dp))
                 val themes = listOf("dark", "light", "system")
                 SegmentedTabs(listOf("Gelap", "Terang", "Sistem"), themes.indexOf(ui.theme).coerceAtLeast(0), { ui.theme = themes[it]; app.security.theme = themes[it] })
+                var hz by remember { mutableStateOf(app.security.highRefreshRate) }
+                SwitchRow("Refresh rate maksimal (${activity.maxRefreshRate()} Hz)", "Animasi & scroll lebih mulus; sedikit lebih boros baterai", hz) {
+                    hz = it; app.security.highRefreshRate = it; activity.applyRefreshRate()
+                }
                 SwitchRow("Sembunyikan nominal saldo", "Tampilkan Rp••••• di layar", ui.hideBalances) { ui.hideBalances = it; app.security.hideBalances = it }
             }
             FinCard {

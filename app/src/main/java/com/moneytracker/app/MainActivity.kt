@@ -1,5 +1,6 @@
 package com.moneytracker.app
 
+import android.os.Build
 import android.os.Bundle
 import android.view.WindowManager
 import androidx.activity.compose.setContent
@@ -14,6 +15,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
 import androidx.compose.ui.Modifier
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.ui.input.pointer.pointerInput
@@ -63,13 +65,17 @@ class MainActivity : FragmentActivity() {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         applySecureFlag()
+        applyRefreshRate()
         ui = UiState(app)
         ProcessLifecycleOwner.get().lifecycle.addObserver(lifecycleObserver)
 
         setContent {
             CompositionLocalProvider(LocalApp provides app, LocalUi provides ui, LocalActivity provides this, LocalHideBalance provides ui.hideBalances) {
                 MoneyTrackerTheme(ui.theme) {
-                    Box(Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) {
+                    // Surface (bukan Box) agar warna teks default = onBackground. Tanpa ini teks
+                    // di layar sambutan & PIN berwarna hitam dan tidak terlihat pada tema gelap.
+                    Surface(Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
+                      Box(Modifier.fillMaxSize()) {
                         if (!ui.onboarded) {
                             OnboardingScreen(onDone = { ui.onboarded = true; ui.locked = false })
                         } else {
@@ -84,6 +90,7 @@ class MainActivity : FragmentActivity() {
                                 }
                             }
                         }
+                      }
                     }
                 }
             }
@@ -98,6 +105,39 @@ class MainActivity : FragmentActivity() {
     fun applySecureFlag() {
         if (app.security.secureScreen) window.addFlags(WindowManager.LayoutParams.FLAG_SECURE)
         else window.clearFlags(WindowManager.LayoutParams.FLAG_SECURE)
+    }
+
+    override fun onResume() {
+        super.onResume()
+        applyRefreshRate() // beberapa perangkat mereset mode layar saat aplikasi kembali aktif
+    }
+
+    /**
+     * Meminta refresh rate tertinggi yang didukung layar (mis. 90/120/144 Hz) pada resolusi saat ini,
+     * sehingga animasi & scroll Compose dirender pada FPS maksimal. Bila dimatikan di Pengaturan,
+     * sistem kembali memilih mode default (hemat baterai).
+     */
+    fun applyRefreshRate() {
+        val d = (if (Build.VERSION.SDK_INT >= 30) display else @Suppress("DEPRECATION") windowManager.defaultDisplay) ?: return
+        val params = window.attributes
+        if (app.security.highRefreshRate) {
+            val cur = d.mode
+            val best = d.supportedModes
+                .filter { it.physicalWidth == cur.physicalWidth && it.physicalHeight == cur.physicalHeight }
+                .maxByOrNull { it.refreshRate } ?: return
+            params.preferredDisplayModeId = best.modeId
+            params.preferredRefreshRate = best.refreshRate
+        } else {
+            params.preferredDisplayModeId = 0
+            params.preferredRefreshRate = 0f
+        }
+        window.attributes = params
+    }
+
+    /** Refresh rate maksimum layar (untuk ditampilkan di Pengaturan). */
+    fun maxRefreshRate(): Int {
+        val d = (if (Build.VERSION.SDK_INT >= 30) display else @Suppress("DEPRECATION") windowManager.defaultDisplay) ?: return 60
+        return d.supportedModes.maxOfOrNull { it.refreshRate }?.toInt() ?: 60
     }
 
     fun canUseBiometric(): Boolean =

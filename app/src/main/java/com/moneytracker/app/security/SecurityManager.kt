@@ -109,6 +109,11 @@ class SecurityManager(context: Context) {
         get() = prefs.getBoolean(KEY_SECURE_SCREEN, true)
         set(v) = prefs.edit().putBoolean(KEY_SECURE_SCREEN, v).apply()
 
+    /** Minta refresh rate layar tertinggi (90/120 Hz) agar animasi lebih mulus. */
+    var highRefreshRate: Boolean
+        get() = prefs.getBoolean(KEY_HIGH_REFRESH, true)
+        set(v) = prefs.edit().putBoolean(KEY_HIGH_REFRESH, v).apply()
+
     var hideBalances: Boolean
         get() = prefs.getBoolean(KEY_HIDE_BALANCE, false)
         set(v) = prefs.edit().putBoolean(KEY_HIDE_BALANCE, v).apply()
@@ -143,6 +148,7 @@ class SecurityManager(context: Context) {
         private const val KEY_SECURE_SCREEN = "secure_screen"
         private const val KEY_HIDE_BALANCE = "hide_balance"
         private const val KEY_THEME = "theme"
+        private const val KEY_HIGH_REFRESH = "high_refresh"
         private const val KEY_NOTIFIED = "notified_keys"
 
         fun b64e(b: ByteArray): String = Base64.encodeToString(b, Base64.NO_WRAP)
