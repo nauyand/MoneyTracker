@@ -348,7 +348,7 @@ fun FuelFormScreen(s: Snapshot, nav: NavHostController, vehicleArg: Long, id: Lo
     var total by rememberSaveable { mutableStateOf(existing?.totalCost?.toString() ?: "") }
     var liters by rememberSaveable { mutableStateOf(existing?.volumeMl?.let { Fmt.decimal(it / 1000.0, 3) } ?: "") }
     var station by rememberSaveable { mutableStateOf(existing?.station ?: lastLog?.station ?: "") }
-    var walletId by rememberSaveable { mutableStateOf(existing?.walletId ?: s.transactions.firstOrNull { it.id in s.fuelTxIds }?.walletId ?: s.activeWallets.firstOrNull()?.id) }
+    var walletId by rememberSaveable { mutableStateOf(existing?.walletId ?: s.transactions.firstOrNull { it.id in s.fuelTxIds }?.walletId ?: s.primaryWallet?.id) }
     var full by rememberSaveable { mutableStateOf(existing?.fullTank ?: true) }
     var note by rememberSaveable { mutableStateOf(existing?.note ?: "") }
     var error by remember { mutableStateOf<String?>(null) }

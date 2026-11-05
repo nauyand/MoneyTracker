@@ -229,3 +229,45 @@ class InsightTest {
         assertTrue(Insights.generate(emptyList(), emptyMap(), 0, emptyList(), emptyList(), emptySet(), emptySet()).isEmpty())
     }
 }
+
+class ReminderTest {
+    private val t = { h: Int, m: Int -> java.time.LocalTime.of(h, m) }
+
+    @Test fun nextDailyToday() {
+        val c = ReminderConfig(dailyEnabled = true, dailyTimes = listOf(t(12, 0), t(20, 0)))
+        val n = ReminderSchedule.next(LocalDateTime.of(2026, 11, 5, 13, 10), c)!!
+        assertEquals(LocalDateTime.of(2026, 11, 5, 20, 0), n.at)
+        assertEquals(setOf(ReminderKind.DAILY), n.kinds)
+    }
+
+    @Test fun nextDailyRollsToTomorrow() {
+        val c = ReminderConfig(dailyEnabled = true, dailyTimes = listOf(t(12, 0), t(20, 0)))
+        assertEquals(LocalDateTime.of(2026, 11, 6, 12, 0), ReminderSchedule.next(LocalDateTime.of(2026, 11, 5, 20, 0), c)!!.at)
+    }
+
+    @Test fun monthlyShortMonthUsesLastDay() {
+        val c = ReminderConfig(monthlyEnabled = true, monthlyDays = setOf(31), monthlyTime = t(9, 0))
+        assertEquals(LocalDateTime.of(2026, 11, 30, 9, 0), ReminderSchedule.next(LocalDateTime.of(2026, 11, 5, 10, 0), c)!!.at)
+        assertEquals(LocalDateTime.of(2027, 2, 28, 9, 0), ReminderSchedule.next(LocalDateTime.of(2027, 2, 1, 10, 0), c)!!.at)
+    }
+
+    @Test fun combinedSameMinute() {
+        val c = ReminderConfig(true, listOf(t(9, 0)), true, setOf(6), t(9, 0))
+        val n = ReminderSchedule.next(LocalDateTime.of(2026, 11, 5, 21, 0), c)!!
+        assertEquals(LocalDateTime.of(2026, 11, 6, 9, 0), n.at)
+        assertEquals(setOf(ReminderKind.DAILY, ReminderKind.MONTHLY), n.kinds)
+    }
+
+    @Test fun disabledReturnsNull() {
+        assertNull(ReminderSchedule.next(LocalDateTime.of(2026, 11, 5, 9, 0), ReminderConfig()))
+    }
+
+    @Test fun windowAndParsing() {
+        val times = ReminderSchedule.parseTimes("20:00, 12:00,bad,12:00")
+        assertEquals(listOf(t(12, 0), t(20, 0)), times)
+        assertEquals("12:00,20:00", ReminderSchedule.formatTimes(times))
+        assertEquals(LocalDateTime.of(2026, 11, 5, 12, 0), ReminderSchedule.windowStart(LocalDateTime.of(2026, 11, 5, 20, 0), times))
+        assertEquals(LocalDateTime.of(2026, 11, 5, 0, 0), ReminderSchedule.windowStart(LocalDateTime.of(2026, 11, 5, 12, 0), times))
+        assertEquals(setOf(1, 15, 31), ReminderSchedule.parseDays("15,1,31,40,x"))
+    }
+}

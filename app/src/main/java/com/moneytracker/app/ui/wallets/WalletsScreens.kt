@@ -22,6 +22,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.outlined.Delete
 import androidx.compose.material.icons.outlined.Edit
+import androidx.compose.material.icons.outlined.SwapVert
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.FilterChip
@@ -61,6 +62,7 @@ import com.moneytracker.app.ui.components.KeyValue
 import com.moneytracker.app.ui.components.LineChart
 import com.moneytracker.app.ui.components.LocalApp
 import com.moneytracker.app.ui.components.MoneyField
+import com.moneytracker.app.ui.components.Pill
 import com.moneytracker.app.ui.components.Option
 import com.moneytracker.app.ui.components.SectionHeader
 import com.moneytracker.app.ui.components.SelectField
@@ -79,10 +81,19 @@ import kotlinx.coroutines.launch
 @Composable
 fun WalletsScreen(s: Snapshot, nav: NavHostController) {
     var showArchived by remember { mutableStateOf(false) }
-    val groups = remember(s, showArchived) { s.wallets.filter { showArchived || !it.archived }.groupBy { it.type }.toSortedMap(compareBy { it.ordinal }) }
+    val primaryId = s.primaryWallet?.id
+    val groups = remember(s, showArchived) {
+        val active = s.wallets.filter { !it.archived }
+        listOf(
+            "Utama" to active.filter { it.isMain },
+            "Opsional" to active.filter { !it.isMain },
+            "Diarsipkan" to if (showArchived) s.wallets.filter { it.archived } else emptyList(),
+        ).filter { it.second.isNotEmpty() }
+    }
 
     Column(Modifier.fillMaxSize()) {
         FinTopBar("Wallet & Rekening") {
+            IconButton(onClick = { nav.navigate(Routes.WALLET_ORDER) }, enabled = s.activeWallets.size > 1) { Icon(Icons.Outlined.SwapVert, "Atur urutan & wallet utama") }
             IconButton(onClick = { nav.navigate(Routes.txForm(type = "TRANSFER")) }) { Text("⇄", style = MaterialTheme.typography.titleLarge) }
             IconButton(onClick = { nav.navigate(Routes.walletForm()) }) { Icon(Icons.Filled.Add, "Tambah wallet") }
         }
@@ -108,14 +119,15 @@ fun WalletsScreen(s: Snapshot, nav: NavHostController) {
             if (s.wallets.isEmpty()) item {
                 EmptyState("👛", "Belum ada wallet", "Tambahkan rekening bank, e-wallet, bank digital, uang tunai, atau kartu kredit.", action = "Tambah wallet", onAction = { nav.navigate(Routes.walletForm()) })
             }
-            groups.forEach { (type, list) ->
-                item(key = "h$type") {
+            groups.forEachIndexed { gi, (title, list) ->
+                item(key = "h$title") {
                     Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(top = 8.dp)) {
-                        Text(type.label, style = MaterialTheme.typography.titleSmall, modifier = Modifier.weight(1f))
+                        Text(title, style = MaterialTheme.typography.titleSmall, modifier = Modifier.weight(1f))
                         Text(money(list.sumOf { s.balance(it.id) }), style = MaterialTheme.typography.labelLarge, color = Fin.colors.muted)
+                        if (gi == 0 && s.activeWallets.size > 1) TextButton(onClick = { nav.navigate(Routes.WALLET_ORDER) }) { Text("Atur") }
                     }
                 }
-                items(list, key = { it.id }) { w -> WalletCard(s, w) { nav.navigate(Routes.wallet(w.id)) } }
+                items(list, key = { it.id }) { w -> WalletCard(s, w, isPrimary = w.id == primaryId) { nav.navigate(Routes.wallet(w.id)) } }
             }
             if (s.wallets.any { it.archived }) item {
                 TextButton(onClick = { showArchived = !showArchived }) { Text(if (showArchived) "Sembunyikan arsip" else "Tampilkan wallet diarsipkan") }
@@ -125,15 +137,18 @@ fun WalletsScreen(s: Snapshot, nav: NavHostController) {
 }
 
 @Composable
-private fun WalletCard(s: Snapshot, w: WalletEntity, onClick: () -> Unit) {
+private fun WalletCard(s: Snapshot, w: WalletEntity, isPrimary: Boolean = false, onClick: () -> Unit) {
     val bal = s.balance(w.id)
     FinCard(onClick = onClick, padding = PaddingValues(14.dp)) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             WalletBadge(w, 44.dp)
             Spacer(Modifier.width(12.dp))
             Column(Modifier.weight(1f)) {
-                Text(w.name + if (w.archived) " (arsip)" else "", style = MaterialTheme.typography.titleSmall)
-                Text(Providers.byCode(w.provider).name + (w.accountSuffix?.let { " ••$it" } ?: ""), style = MaterialTheme.typography.labelSmall, color = Fin.colors.muted)
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(w.name + if (w.archived) " (arsip)" else "", style = MaterialTheme.typography.titleSmall)
+                    if (isPrimary) { Spacer(Modifier.width(6.dp)); Pill("⭐ Default", MaterialTheme.colorScheme.primary) }
+                }
+                Text(w.type.label + " · " + Providers.byCode(w.provider).name + (w.accountSuffix?.let { " ••$it" } ?: ""), style = MaterialTheme.typography.labelSmall, color = Fin.colors.muted)
             }
             Text(money(bal), style = MaterialTheme.typography.titleSmall, color = if (bal < 0) Fin.colors.expense else MaterialTheme.colorScheme.onSurface)
         }
@@ -200,6 +215,7 @@ fun WalletDetailScreen(s: Snapshot, nav: NavHostController, id: Long) {
                     Button(onClick = { nav.navigate(Routes.txForm(type = "TRANSFER", wallet = id)) }, modifier = Modifier.weight(1f)) { Text("Transfer") }
                     OutlinedButton(onClick = { reconcile = true }, modifier = Modifier.weight(1f)) { Text("Rekonsiliasi") }
                 }
+                if (!w.archived && s.primaryWallet?.id != w.id) TextButton(onClick = { scope.launch { app.repository.setPrimaryWallet(w.id) } }) { Text("⭐ Jadikan wallet utama (default)") }
             }
             item { FinCard { Text("Saldo 60 hari", style = MaterialTheme.typography.titleSmall); LineChart(series.map { Fmt.dayMonth(it.first) }, series.map { it.second.toDouble() }, Color(w.color).let { if (it.luminanceLow()) MaterialTheme.colorScheme.primary else it }, title = "Saldo") } }
             item {
@@ -258,6 +274,7 @@ fun WalletFormScreen(s: Snapshot, nav: NavHostController, id: Long, typeArg: Str
     var note by rememberSaveable { mutableStateOf(existing?.note ?: "") }
     var include by rememberSaveable { mutableStateOf(existing?.includeInTotal ?: true) }
     var archived by rememberSaveable { mutableStateOf(existing?.archived ?: false) }
+    var isMain by rememberSaveable { mutableStateOf(existing?.isMain ?: true) }
     var color by rememberSaveable { mutableStateOf(existing?.color ?: Providers.byCode(provider).color) }
     var error by remember { mutableStateOf<String?>(null) }
 
@@ -300,6 +317,13 @@ fun WalletFormScreen(s: Snapshot, nav: NavHostController, id: Long, typeArg: Str
                 }
             }
             Row(verticalAlignment = Alignment.CenterVertically) { Text("Hitung dalam total saldo", modifier = Modifier.weight(1f)); Switch(include, { include = it }) }
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Column(Modifier.weight(1f)) {
+                    Text("Wallet utama")
+                    Text("Tampil di bagian atas. Matikan untuk memindahkan ke bagian Opsional.", style = MaterialTheme.typography.labelSmall, color = Fin.colors.muted)
+                }
+                Switch(isMain, { isMain = it })
+            }
             if (existing != null) Row(verticalAlignment = Alignment.CenterVertically) { Text("Arsipkan (sembunyikan, riwayat tetap)", modifier = Modifier.weight(1f)); Switch(archived, { archived = it }) }
             error?.let { Text(it, color = MaterialTheme.colorScheme.error) }
             Button(onClick = {
@@ -309,7 +333,7 @@ fun WalletFormScreen(s: Snapshot, nav: NavHostController, id: Long, typeArg: Str
                         (existing ?: WalletEntity(name = name, type = type, provider = provider, color = color, initialBalance = 0)).copy(
                             name = name.trim(), type = type, provider = provider, color = color, initialBalance = initial.toAmount(),
                             creditLimit = if (type == WalletType.CREDIT_CARD) limit.toAmount().takeIf { it > 0 } else null,
-                            accountSuffix = suffix.ifBlank { null }, note = note, includeInTotal = include, archived = archived,
+                            accountSuffix = suffix.ifBlank { null }, note = note, includeInTotal = include, archived = archived, isMain = isMain,
                         ),
                     )
                     nav.popBackStack()

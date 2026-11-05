@@ -220,7 +220,7 @@ fun RecurringFormScreen(s: Snapshot, nav: NavHostController, id: Long, kindArg: 
     var kind by rememberSaveable { mutableStateOf(e?.kind ?: runCatching { RecurringKind.valueOf(kindArg) }.getOrDefault(RecurringKind.SUBSCRIPTION)) }
     var name by rememberSaveable { mutableStateOf(e?.name ?: "") }
     var amount by rememberSaveable { mutableStateOf(e?.amount?.toString() ?: "") }
-    var walletId by rememberSaveable { mutableStateOf(e?.walletId ?: s.activeWallets.firstOrNull()?.id) }
+    var walletId by rememberSaveable { mutableStateOf(e?.walletId ?: s.primaryWallet?.id) }
     var categoryId by rememberSaveable { mutableStateOf(e?.categoryId) }
     var period by rememberSaveable { mutableStateOf(e?.period ?: Period.MONTHLY) }
     var interval by rememberSaveable { mutableStateOf(e?.interval?.toString() ?: "1") }
@@ -386,7 +386,7 @@ fun DebtDetailScreen(s: Snapshot, nav: NavHostController, id: Long) {
         if (pay) {
             var principal by remember { mutableStateOf((d.installmentAmount ?: st.remaining).coerceAtMost(st.remaining).toString()) }
             var interest by remember { mutableStateOf("") }
-            var walletId by remember { mutableStateOf(s.activeWallets.firstOrNull { !it.type.isLiability }?.id) }
+            var walletId by remember { mutableStateOf(s.primaryWallet?.takeIf { !it.type.isLiability }?.id ?: s.activeWallets.firstOrNull { !it.type.isLiability }?.id) }
             var date by remember { mutableStateOf(today()) }
             AlertDialog(
                 onDismissRequest = { pay = false },
@@ -431,7 +431,7 @@ fun DebtFormScreen(s: Snapshot, nav: NavHostController, id: Long) {
     var note by rememberSaveable { mutableStateOf(e?.note ?: "") }
     var archived by rememberSaveable { mutableStateOf(e?.archived ?: false) }
     var disburse by rememberSaveable { mutableStateOf(false) }
-    var walletId by rememberSaveable { mutableStateOf(s.activeWallets.firstOrNull { !it.type.isLiability }?.id) }
+    var walletId by rememberSaveable { mutableStateOf(s.primaryWallet?.takeIf { !it.type.isLiability }?.id ?: s.activeWallets.firstOrNull { !it.type.isLiability }?.id) }
 
     Column(Modifier.fillMaxSize()) {
         FinTopBar(if (e == null) "Utang/piutang baru" else "Edit", onBack = { nav.popBackStack() })

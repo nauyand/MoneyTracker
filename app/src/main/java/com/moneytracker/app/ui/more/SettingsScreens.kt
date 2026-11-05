@@ -124,9 +124,10 @@ fun SettingsScreen(s: Snapshot, nav: NavHostController) {
                 OutlinedButton(onClick = { ui.locked = true }, modifier = Modifier.fillMaxWidth()) { Text("Kunci sekarang") }
                 BasisNote("PIN disimpan sebagai hash PBKDF2 + salt. Database dienkripsi (SQLCipher) dengan kunci yang dilindungi Android Keystore. MoneyTracker tidak pernah menyimpan PIN/password internet banking atau kredensial bank.")
             }
+            ReminderSettingsCard()
             FinCard {
-                Text("Notifikasi", style = MaterialTheme.typography.titleMedium)
-                Text("Pengingat jatuh tempo tagihan, langganan, cicilan, dan peringatan anggaran.", style = MaterialTheme.typography.bodySmall, color = Fin.colors.muted)
+                Text("Notifikasi lain", style = MaterialTheme.typography.titleMedium)
+                Text("Pengingat jatuh tempo tagihan, langganan, cicilan, dan peringatan anggaran berjalan otomatis.", style = MaterialTheme.typography.bodySmall, color = Fin.colors.muted)
                 if (Build.VERSION.SDK_INT >= 33) TextButton(onClick = { notifPermission.launch(Manifest.permission.POST_NOTIFICATIONS) }) { Text("Izinkan notifikasi") }
             }
             FinCard {
@@ -194,6 +195,7 @@ fun SettingsScreen(s: Snapshot, nav: NavHostController) {
                 TextButton(enabled = typed.trim().uppercase() == "HAPUS", onClick = {
                     scope.launch {
                         app.repository.wipeEverything()
+                        com.moneytracker.app.work.Reminders.clear(ctx)
                         app.security.wipe()
                         activity.restartApp()
                     }

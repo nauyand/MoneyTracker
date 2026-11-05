@@ -114,10 +114,25 @@ class Repository(
     // =============== Wallet ===============
     suspend fun saveWallet(w: WalletEntity): Long {
         val before = w.id.takeIf { it != 0L }?.let { id -> snapshot.value?.walletMap?.get(id) }
-        val e = w.copy(updatedAt = System.currentTimeMillis())
+        val e = w.copy(
+            updatedAt = System.currentTimeMillis(),
+            sortOrder = if (w.id == 0L) dao.maxWalletOrder() + 1 else w.sortOrder,
+        )
         val id = dao.upsertWallet(e).let { if (w.id != 0L) w.id else it }
         audit("wallet", id, if (before == null) "CREATE" else "UPDATE", "Wallet ${w.name}", before, e)
         return id
+    }
+
+    /** Simpan urutan hasil drag & drop. [ordered] = (walletId, bagian Utama?) dari atas ke bawah. */
+    suspend fun reorderWallets(ordered: List<Pair<Long, Boolean>>) = db.withTransaction {
+        ordered.forEachIndexed { i, (id, main) -> dao.setWalletOrder(id, i, main) }
+    }
+
+    /** Jadikan wallet utama/default: dipindah ke posisi teratas bagian Utama. */
+    suspend fun setPrimaryWallet(walletId: Long) {
+        val list = snapshot.value?.wallets?.filter { !it.archived } ?: return
+        val target = list.firstOrNull { it.id == walletId } ?: return
+        reorderWallets(listOf(target.id to true) + list.filter { it.id != walletId }.map { it.id to it.isMain })
     }
 
     /** Menghapus wallet beserta seluruh transaksinya (termasuk log BBM terkait). */

@@ -72,7 +72,7 @@ fun ImportScreen(s: Snapshot, onBack: () -> Unit) {
     var debitCol by remember { mutableStateOf<Int?>(null) }
     var creditCol by remember { mutableStateOf<Int?>(null) }
     var positiveIsExpense by remember { mutableStateOf(false) }
-    var walletId by remember { mutableStateOf(s.activeWallets.firstOrNull()?.id) }
+    var walletId by remember { mutableStateOf(s.primaryWallet?.id) }
     var incomeCat by remember { mutableStateOf<Long?>(null) }
     var expenseCat by remember { mutableStateOf<Long?>(null) }
     var candidates by remember { mutableStateOf<List<Repository.ImportCandidate>>(emptyList()) }

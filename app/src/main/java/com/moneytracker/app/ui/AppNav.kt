@@ -75,6 +75,10 @@ import com.moneytracker.app.ui.vehicles.VehiclesScreen
 import com.moneytracker.app.ui.wallets.WalletDetailScreen
 import com.moneytracker.app.ui.wallets.WalletFormScreen
 import com.moneytracker.app.ui.wallets.WalletsScreen
+import com.moneytracker.app.ui.wallets.WalletOrderScreen
+import com.moneytracker.app.LocalActivity
+import com.moneytracker.app.work.Reminders
+import androidx.compose.runtime.LaunchedEffect
 
 data class TopDest(val route: String, val label: String, val icon: ImageVector, val onPhone: Boolean)
 
@@ -109,6 +113,7 @@ object Routes {
     const val ASSISTANT = "assistant"
     const val IMPORT = "import"
     const val AUDIT = "audit"
+    const val WALLET_ORDER = "wallets/order"
 
     fun txForm(id: Long = 0, type: String = "", wallet: Long = 0, duplicate: Boolean = false) = "tx/edit?id=$id&type=$type&wallet=$wallet&dup=$duplicate"
     fun txDetail(id: Long) = "tx/detail/$id"
@@ -233,5 +238,17 @@ private fun AppNavHost(nav: NavHostController) {
         composable(Routes.ASSISTANT) { AssistantScreen(s, back) }
         composable(Routes.IMPORT) { ImportScreen(s, back) }
         composable(Routes.AUDIT) { AuditScreen(back) }
+        composable(Routes.WALLET_ORDER) { WalletOrderScreen(s, nav) }
+    }
+
+    // Buka layar sesuai notifikasi pengingat yang diketuk.
+    val activity = LocalActivity.current
+    val open = activity.pendingOpen.value
+    LaunchedEffect(open) {
+        when (open) {
+            Reminders.OPEN_NEW_TX -> nav.navigate(Routes.txForm())
+            Reminders.OPEN_WALLETS -> nav.navigateTop(Routes.WALLETS)
+        }
+        if (open != null) activity.pendingOpen.value = null
     }
 }

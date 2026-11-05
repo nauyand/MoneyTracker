@@ -64,6 +64,9 @@ class Snapshot(
 
     val activeWallets: List<WalletEntity> get() = wallets.filter { !it.archived }
 
+    /** Wallet utama/default = wallet aktif teratas di bagian Utama (diatur lewat drag & drop). */
+    val primaryWallet: WalletEntity? get() = activeWallets.firstOrNull { it.isMain } ?: activeWallets.firstOrNull()
+
     /** Wallet yang dihitung dalam "Total saldo" (bukan kartu kredit). */
     val countedWallets: List<WalletEntity> by lazy { wallets.filter { it.includeInTotal && !it.type.isLiability } }
 

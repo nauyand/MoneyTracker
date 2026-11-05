@@ -85,7 +85,7 @@ fun TransactionFormScreen(s: Snapshot, nav: NavHostController, id: Long, typeArg
     val scope = rememberCoroutineScope()
     val existing = remember(id) { if (id != 0L) s.transactions.firstOrNull { it.id == id } else null }
     val isFuel = existing != null && existing.id in s.fuelTxIds && !duplicate
-    val defaultWallet = walletArg.takeIf { it != 0L } ?: s.activeWallets.firstOrNull { !it.type.isLiability }?.id ?: s.activeWallets.firstOrNull()?.id
+    val defaultWallet = walletArg.takeIf { it != 0L } ?: s.primaryWallet?.id
 
     var type by rememberSaveable { mutableStateOf(existing?.type ?: runCatching { TxType.valueOf(typeArg) }.getOrDefault(TxType.EXPENSE)) }
     var amount by rememberSaveable { mutableStateOf(existing?.amount?.toString() ?: "") }

@@ -12,6 +12,7 @@ import com.moneytracker.app.data.ExportManager
 import com.moneytracker.app.data.Repository
 import com.moneytracker.app.security.SecurityManager
 import com.moneytracker.app.work.DailyWorker
+import com.moneytracker.app.work.Reminders
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.Dispatchers
@@ -42,6 +43,7 @@ class MoneyTrackerApp : Application() {
             repository.processDueRecurring()
         }
         createChannels()
+        Reminders.schedule(this)
         WorkManager.getInstance(this).enqueueUniquePeriodicWork(
             "daily", ExistingPeriodicWorkPolicy.KEEP,
             PeriodicWorkRequestBuilder<DailyWorker>(12, TimeUnit.HOURS).build(),
@@ -52,11 +54,13 @@ class MoneyTrackerApp : Application() {
         val nm = getSystemService(NotificationManager::class.java)
         nm.createNotificationChannel(NotificationChannel(CHANNEL_REMINDERS, "Pengingat jatuh tempo", NotificationManager.IMPORTANCE_DEFAULT))
         nm.createNotificationChannel(NotificationChannel(CHANNEL_BUDGET, "Peringatan anggaran", NotificationManager.IMPORTANCE_DEFAULT))
+        nm.createNotificationChannel(NotificationChannel(CHANNEL_RECORD, "Pengingat pencatatan", NotificationManager.IMPORTANCE_HIGH))
     }
 
     companion object {
         const val CHANNEL_REMINDERS = "reminders"
         const val CHANNEL_BUDGET = "budget"
+        const val CHANNEL_RECORD = "record_reminder"
         lateinit var instance: MoneyTrackerApp; private set
     }
 }

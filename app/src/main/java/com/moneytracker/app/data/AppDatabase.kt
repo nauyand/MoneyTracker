@@ -8,6 +8,8 @@ import androidx.room.Query
 import androidx.room.Room
 import androidx.room.RoomDatabase
 import androidx.room.Upsert
+import androidx.room.migration.Migration
+import androidx.sqlite.db.SupportSQLiteDatabase
 import kotlinx.coroutines.flow.Flow
 import net.zetetic.database.sqlcipher.SupportOpenHelperFactory
 
@@ -15,7 +17,7 @@ import net.zetetic.database.sqlcipher.SupportOpenHelperFactory
 interface AppDao {
     // ---------- Flows ----------
     @Query("SELECT * FROM users LIMIT 1") fun user(): Flow<UserEntity?>
-    @Query("SELECT * FROM wallets ORDER BY archived, sortOrder, id") fun wallets(): Flow<List<WalletEntity>>
+    @Query("SELECT * FROM wallets ORDER BY archived, isMain DESC, sortOrder, id") fun wallets(): Flow<List<WalletEntity>>
     @Query("SELECT * FROM categories ORDER BY sortOrder, id") fun categories(): Flow<List<CategoryEntity>>
     @Query("SELECT * FROM transactions ORDER BY dateTime DESC, id DESC") fun transactions(): Flow<List<TransactionEntity>>
     @Query("SELECT * FROM vehicles ORDER BY archived, id") fun vehicles(): Flow<List<VehicleEntity>>
@@ -41,6 +43,10 @@ interface AppDao {
     @Query("SELECT * FROM recurring WHERE active = 1") suspend fun activeRecurring(): List<RecurringEntity>
     @Query("SELECT * FROM debts WHERE archived = 0") suspend fun activeDebts(): List<DebtEntity>
     @Query("SELECT * FROM attachments WHERE transactionId = :txId") suspend fun attachmentsOf(txId: Long): List<AttachmentEntity>
+    @Query("SELECT COUNT(*) FROM transactions WHERE createdAt >= :since") suspend fun countCreatedSince(since: Long): Int
+    @Query("SELECT * FROM transactions WHERE dateTime >= :from AND dateTime < :to") suspend fun transactionsDatedBetween(from: Long, to: Long): List<TransactionEntity>
+    @Query("UPDATE wallets SET sortOrder = :order, isMain = :main WHERE id = :id") suspend fun setWalletOrder(id: Long, order: Int, main: Boolean)
+    @Query("SELECT COALESCE(MAX(sortOrder), 0) FROM wallets") suspend fun maxWalletOrder(): Int
 
     // ---------- Upserts ----------
     @Upsert suspend fun upsertUser(e: UserEntity)
@@ -90,7 +96,7 @@ interface AppDao {
         VehicleEntity::class, FuelLogEntity::class, OdometerLogEntity::class, BudgetEntity::class, SavingsGoalEntity::class,
         DebtEntity::class, RecurringEntity::class, AssetEntity::class, AuditEntity::class,
     ],
-    version = 1,
+    version = 2,
     exportSchema = true,
 )
 abstract class AppDatabase : RoomDatabase() {
@@ -106,10 +112,18 @@ abstract class AppDatabase : RoomDatabase() {
         )
 
         /** Database dienkripsi penuh dengan SQLCipher; kunci acak disimpan terenkripsi oleh Android Keystore. */
+        /** v2: wallet bisa ditandai Utama/Opsional (urutan tetap memakai sortOrder). */
+        val MIGRATION_1_2 = object : Migration(1, 2) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE `wallets` ADD COLUMN `isMain` INTEGER NOT NULL DEFAULT 1")
+            }
+        }
+
         fun create(context: Context, passphrase: ByteArray): AppDatabase {
             System.loadLibrary("sqlcipher")
             return Room.databaseBuilder(context, AppDatabase::class.java, NAME)
                 .openHelperFactory(SupportOpenHelperFactory(passphrase))
+                .addMigrations(MIGRATION_1_2)
                 .build()
         }
     }

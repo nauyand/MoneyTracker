@@ -1,5 +1,6 @@
 package com.moneytracker.app.data
 
+import androidx.room.ColumnInfo
 import androidx.room.Entity
 import androidx.room.Index
 import androidx.room.PrimaryKey
@@ -42,7 +43,10 @@ data class WalletEntity(
     val note: String = "",
     val archived: Boolean = false,
     val includeInTotal: Boolean = true,
+    /** Urutan tampil (hasil drag & drop). Wallet Utama pertama = wallet default. */
     val sortOrder: Int = 0,
+    /** true = bagian "Utama" (di atas), false = bagian "Opsional". */
+    @ColumnInfo(defaultValue = "1") val isMain: Boolean = true,
     val createdAt: Long = System.currentTimeMillis(),
     val updatedAt: Long = System.currentTimeMillis(),
 )

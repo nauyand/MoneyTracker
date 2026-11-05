@@ -1,5 +1,6 @@
 package com.moneytracker.app
 
+import android.content.Intent
 import android.os.Build
 import android.os.Bundle
 import android.view.WindowManager
@@ -36,6 +37,7 @@ import com.moneytracker.app.ui.components.LocalHideBalance
 import com.moneytracker.app.ui.lock.LockScreen
 import com.moneytracker.app.ui.lock.OnboardingScreen
 import com.moneytracker.app.ui.theme.MoneyTrackerTheme
+import com.moneytracker.app.work.Reminders
 
 /** State UI global yang bisa diubah dari Pengaturan. */
 class UiState(app: MoneyTrackerApp) {
@@ -50,6 +52,8 @@ val LocalActivity = staticCompositionLocalOf<MainActivity> { error("Activity tid
 
 class MainActivity : FragmentActivity() {
     private lateinit var ui: UiState
+    /** Layar yang diminta notifikasi (mis. "tx_new"), diproses oleh AppNav. */
+    val pendingOpen = mutableStateOf<String?>(null)
     private var backgroundedAt = 0L
     private val app get() = application as MoneyTrackerApp
 
@@ -67,6 +71,7 @@ class MainActivity : FragmentActivity() {
         applySecureFlag()
         applyRefreshRate()
         ui = UiState(app)
+        pendingOpen.value = intent?.getStringExtra(Reminders.EXTRA_OPEN)
         ProcessLifecycleOwner.get().lifecycle.addObserver(lifecycleObserver)
 
         setContent {
@@ -105,6 +110,12 @@ class MainActivity : FragmentActivity() {
     fun applySecureFlag() {
         if (app.security.secureScreen) window.addFlags(WindowManager.LayoutParams.FLAG_SECURE)
         else window.clearFlags(WindowManager.LayoutParams.FLAG_SECURE)
+    }
+
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        setIntent(intent)
+        intent.getStringExtra(Reminders.EXTRA_OPEN)?.let { pendingOpen.value = it }
     }
 
     override fun onResume() {
