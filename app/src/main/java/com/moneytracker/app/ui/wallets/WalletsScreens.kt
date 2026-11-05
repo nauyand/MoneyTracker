@@ -51,6 +51,7 @@ import com.moneytracker.app.data.Providers
 import com.moneytracker.app.data.Snapshot
 import com.moneytracker.app.data.WalletEntity
 import com.moneytracker.app.ui.Routes
+import com.moneytracker.app.ui.components.AnimatedMoney
 import com.moneytracker.app.ui.components.BasisNote
 import com.moneytracker.app.ui.components.ConfirmDialog
 import com.moneytracker.app.ui.components.EmptyState
@@ -101,7 +102,7 @@ fun WalletsScreen(s: Snapshot, nav: NavHostController) {
             item {
                 FinCard {
                     Text("Total saldo", style = MaterialTheme.typography.labelMedium, color = Fin.colors.muted)
-                    Text(money(s.totalBalance), style = MaterialTheme.typography.headlineMedium)
+                    AnimatedMoney(s.totalBalance, MaterialTheme.typography.headlineMedium)
                     Spacer(Modifier.height(8.dp))
                     val cc = s.wallets.filter { it.type == WalletType.CREDIT_CARD }.sumOf { -s.balance(it.id) }
                     Row {
@@ -150,7 +151,7 @@ private fun WalletCard(s: Snapshot, w: WalletEntity, isPrimary: Boolean = false,
                 }
                 Text(w.type.label + " · " + Providers.byCode(w.provider).name + (w.accountSuffix?.let { " ••$it" } ?: ""), style = MaterialTheme.typography.labelSmall, color = Fin.colors.muted)
             }
-            Text(money(bal), style = MaterialTheme.typography.titleSmall, color = if (bal < 0) Fin.colors.expense else MaterialTheme.colorScheme.onSurface)
+            AnimatedMoney(bal, MaterialTheme.typography.titleSmall, color = if (bal < 0) Fin.colors.expense else MaterialTheme.colorScheme.onSurface)
         }
         if (w.type == WalletType.CREDIT_CARD && (w.creditLimit ?: 0) > 0) {
             val used = (-bal).coerceAtLeast(0)
@@ -196,7 +197,7 @@ fun WalletDetailScreen(s: Snapshot, nav: NavHostController, id: Long) {
                         }
                         Spacer(Modifier.height(18.dp))
                         Text("Saldo saat ini", color = Color.White.copy(alpha = 0.8f), style = MaterialTheme.typography.labelMedium)
-                        Text(money(s.balance(id)), color = Color.White, style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold)
+                        AnimatedMoney(s.balance(id), MaterialTheme.typography.headlineMedium, color = Color.White, fontWeight = FontWeight.Bold)
                         w.accountSuffix?.let { Text("•••• $it", color = Color.White.copy(alpha = 0.8f), style = MaterialTheme.typography.bodyMedium) }
                     }
                 }

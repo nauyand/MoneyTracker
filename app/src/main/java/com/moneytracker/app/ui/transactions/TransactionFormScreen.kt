@@ -1,5 +1,7 @@
 package com.moneytracker.app.ui.transactions
 
+import com.moneytracker.app.ui.fx.celebrationFor
+import com.moneytracker.app.LocalUi
 import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.PickVisualMediaRequest
@@ -82,6 +84,7 @@ private val otherTypes = listOf(TxType.SAVINGS_ALLOCATION, TxType.CC_SETTLEMENT,
 @Composable
 fun TransactionFormScreen(s: Snapshot, nav: NavHostController, id: Long, typeArg: String, walletArg: Long, duplicate: Boolean) {
     val app = LocalApp.current
+    val ui = LocalUi.current
     val scope = rememberCoroutineScope()
     val existing = remember(id) { if (id != 0L) s.transactions.firstOrNull { it.id == id } else null }
     val isFuel = existing != null && existing.id in s.fuelTxIds && !duplicate
@@ -262,6 +265,7 @@ fun TransactionFormScreen(s: Snapshot, nav: NavHostController, id: Long, typeArg
                                 createdAt = if (duplicate) System.currentTimeMillis() else existing?.createdAt ?: System.currentTimeMillis(),
                             )
                             app.repository.saveTransaction(entity, newImages.toList(), removed.toList())
+                            ui.celebrate(s.celebrationFor(entity, isNew = entity.id == 0L))
                             nav.popBackStack()
                         } catch (e: Repository.ValidationException) {
                             error = e.message; saving = false

@@ -4,6 +4,7 @@ import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -200,10 +201,10 @@ fun TransactionsScreen(s: Snapshot, nav: NavHostController) {
                                 Text(money(net, withSign = true), style = MaterialTheme.typography.labelMedium, color = Fin.colors.muted)
                             }
                         }
-                        items(list, key = { it.id }) { t -> TransactionRow(s, t, onClick = { nav.navigate(Routes.txDetail(t.id)) }) }
+                        items(list, key = { it.id }) { t -> Box(Modifier.animateItem()) { TransactionRow(s, t, onClick = { nav.navigate(Routes.txDetail(t.id)) }) } }
                     }
                 } else {
-                    items(filtered, key = { it.id }) { t -> TransactionRow(s, t, onClick = { nav.navigate(Routes.txDetail(t.id)) }, showDate = true) }
+                    items(filtered, key = { it.id }) { t -> Box(Modifier.animateItem()) { TransactionRow(s, t, onClick = { nav.navigate(Routes.txDetail(t.id)) }, showDate = true) } }
                 }
             }
         }

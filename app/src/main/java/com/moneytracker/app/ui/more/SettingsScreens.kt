@@ -105,6 +105,9 @@ fun SettingsScreen(s: Snapshot, nav: NavHostController) {
                 SwitchRow("Refresh rate maksimal (${activity.maxRefreshRate()} Hz)", "Animasi & scroll lebih mulus; sedikit lebih boros baterai", hz) {
                     hz = it; app.security.highRefreshRate = it; activity.applyRefreshRate()
                 }
+                var intro by remember { mutableStateOf(app.security.introEnabled) }
+                SwitchRow("Animasi pembuka", "Logo & nama pembuat saat aplikasi dibuka", intro) { intro = it; app.security.introEnabled = it }
+                SwitchRow("Animasi transaksi", "Efek saat menyimpan transaksi & saldo berjalan", ui.motion) { ui.motion = it; app.security.motionEnabled = it }
                 SwitchRow("Sembunyikan nominal saldo", "Tampilkan Rp••••• di layar", ui.hideBalances) { ui.hideBalances = it; app.security.hideBalances = it }
             }
             FinCard {

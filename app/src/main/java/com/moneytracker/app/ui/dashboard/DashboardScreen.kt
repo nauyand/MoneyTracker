@@ -54,6 +54,7 @@ import androidx.navigation.NavHostController
 import com.moneytracker.app.LocalUi
 import com.moneytracker.app.data.Snapshot
 import com.moneytracker.app.ui.Routes
+import com.moneytracker.app.ui.components.AnimatedMoney
 import com.moneytracker.app.ui.components.BarChart
 import com.moneytracker.app.ui.components.BarSeries
 import com.moneytracker.app.ui.components.BasisNote
@@ -134,7 +135,7 @@ fun DashboardScreen(s: Snapshot, nav: NavHostController) {
             Box(Modifier.fillMaxWidth().clip(RoundedCornerShape(26.dp)).background(Fin.colors.heroGradient).clickable { nav.navigate(Routes.WALLETS) }.padding(20.dp)) {
                 Column {
                     Text("Total saldo", style = MaterialTheme.typography.labelMedium, color = Color.White.copy(alpha = 0.8f))
-                    Text(money(s.totalBalance), style = MaterialTheme.typography.displaySmall, color = Color.White, fontWeight = FontWeight.Bold)
+                    AnimatedMoney(s.totalBalance, MaterialTheme.typography.displaySmall, color = Color.White, fontWeight = FontWeight.Bold)
                     Spacer(Modifier.height(4.dp))
                     Text("${s.countedWallets.size} wallet · net worth ${money(nw.netWorth)}", style = MaterialTheme.typography.bodySmall, color = Color.White.copy(alpha = 0.85f))
                     Spacer(Modifier.height(16.dp))

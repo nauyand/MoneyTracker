@@ -1,5 +1,8 @@
 package com.moneytracker.app.ui.vehicles
 
+import com.moneytracker.app.ui.fx.CelebKind
+import com.moneytracker.app.ui.fx.Celebration
+import com.moneytracker.app.LocalUi
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
@@ -333,6 +336,7 @@ fun VehicleFormScreen(s: Snapshot, nav: NavHostController, id: Long) {
 @Composable
 fun FuelFormScreen(s: Snapshot, nav: NavHostController, vehicleArg: Long, id: Long) {
     val app = LocalApp.current
+    val ui = LocalUi.current
     val scope = rememberCoroutineScope()
     val existing = remember(id) { s.fuelLogs.firstOrNull { it.id == id } }
     var vehicleId by rememberSaveable { mutableStateOf(existing?.vehicleId ?: vehicleArg.takeIf { it != 0L } ?: s.vehicles.firstOrNull { !it.archived }?.id) }
@@ -409,11 +413,20 @@ fun FuelFormScreen(s: Snapshot, nav: NavHostController, vehicleArg: Long, id: Lo
                 if (error != null) return@Button
                 scope.launch {
                     try {
+                        val isNew = existing == null
                         app.repository.saveFuelLog(
                             FuelLogEntity(
                                 id = existing?.id ?: 0, vehicleId = v!!, transactionId = existing?.transactionId, dateTime = Fmt.toMillis(date.atTime(time)),
                                 odometerKm = odo!!, fuelType = fuelType, pricePerLiter = priceL, totalCost = cost, volumeMl = volumeMl,
                                 station = station.trim(), walletId = w!!, fullTank = full, note = note.trim(), createdAt = existing?.createdAt ?: System.currentTimeMillis(),
+                            ),
+                        )
+                        val vName = s.vehicleMap[v]?.name.orEmpty()
+                        ui.celebrate(
+                            Celebration(
+                                CelebKind.FUEL, cost, if (isNew) "Pengisian BBM tercatat" else "Perubahan disimpan", from = s.walletMap[w],
+                                subtitle = "${Fmt.liters(volumeMl)} $fuelType · $vName" + (if (full) " · full tank" else "") +
+                                    (s.walletMap[w]?.takeIf { isNew }?.let { "\nSaldo ${it.name} sekarang ${Fmt.rupiah(s.balance(it.id) - cost)}" } ?: ""),
                             ),
                         )
                         nav.popBackStack()

@@ -38,6 +38,9 @@ import com.moneytracker.app.ui.lock.LockScreen
 import com.moneytracker.app.ui.lock.OnboardingScreen
 import com.moneytracker.app.ui.theme.MoneyTrackerTheme
 import com.moneytracker.app.work.Reminders
+import com.moneytracker.app.ui.fx.Celebration
+import com.moneytracker.app.ui.fx.CelebrationOverlay
+import com.moneytracker.app.ui.fx.IntroScreen
 
 /** State UI global yang bisa diubah dari Pengaturan. */
 class UiState(app: MoneyTrackerApp) {
@@ -45,6 +48,12 @@ class UiState(app: MoneyTrackerApp) {
     var locked by mutableStateOf(app.security.hasPin)
     var theme by mutableStateOf(app.security.theme)
     var hideBalances by mutableStateOf(app.security.hideBalances)
+    var motion by mutableStateOf(app.security.motionEnabled)
+    var showIntro by mutableStateOf(false)
+    /** Animasi umpan balik transaksi yang sedang tampil. */
+    var celebration by mutableStateOf<Celebration?>(null)
+
+    fun celebrate(c: Celebration) { if (motion) celebration = c }
 }
 
 val LocalUi = staticCompositionLocalOf<UiState> { error("UiState tidak tersedia") }
@@ -72,6 +81,8 @@ class MainActivity : FragmentActivity() {
         applyRefreshRate()
         ui = UiState(app)
         pendingOpen.value = intent?.getStringExtra(Reminders.EXTRA_OPEN)
+        // Intro hanya saat cold start (bukan rotasi layar / dibuka dari notifikasi)
+        ui.showIntro = savedInstanceState == null && app.security.introEnabled && pendingOpen.value == null
         ProcessLifecycleOwner.get().lifecycle.addObserver(lifecycleObserver)
 
         setContent {
@@ -95,6 +106,10 @@ class MainActivity : FragmentActivity() {
                                 }
                             }
                         }
+                        ui.celebration?.let { c ->
+                            CelebrationOverlay(c, onDone = { if (ui.celebration?.id == c.id) ui.celebration = null })
+                        }
+                        if (ui.showIntro) IntroScreen(onDone = { ui.showIntro = false })
                       }
                     }
                 }

@@ -1,6 +1,14 @@
 package com.moneytracker.app.ui.components
 
 import androidx.compose.animation.animateContentSize
+import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.spring
+import androidx.compose.foundation.LocalIndication
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsPressedAsState
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.BorderStroke
@@ -94,8 +102,13 @@ fun FinCard(
     content: @Composable ColumnScope.() -> Unit,
 ) {
     val shape = RoundedCornerShape(22.dp)
+    // Efek tekan: kartu sedikit mengecil lalu memantul kembali.
+    val interaction = remember { MutableInteractionSource() }
+    val pressed by interaction.collectIsPressedAsState()
+    val scale by animateFloatAsState(if (pressed && onClick != null) 0.97f else 1f, spring(dampingRatio = 0.5f, stiffness = 600f), label = "press")
     Surface(
-        modifier = modifier.fillMaxWidth().clip(shape).then(if (onClick != null) Modifier.clickable(onClick = onClick) else Modifier),
+        modifier = modifier.fillMaxWidth().graphicsLayer { scaleX = scale; scaleY = scale }.clip(shape)
+            .then(if (onClick != null) Modifier.clickable(interactionSource = interaction, indication = LocalIndication.current, onClick = onClick) else Modifier),
         shape = shape,
         color = color,
         border = BorderStroke(1.dp, Fin.colors.stroke.copy(alpha = 0.6f)),
@@ -118,6 +131,40 @@ fun SectionHeader(title: String, modifier: Modifier = Modifier, action: String? 
 /** Menampilkan nominal; disamarkan bila mode sembunyikan saldo aktif. */
 @Composable
 fun money(value: Long, withSign: Boolean = false): String = if (LocalHideBalance.current) "Rp•••••" else Fmt.rupiah(value, withSign)
+
+/**
+ * Nominal yang "berjalan" (count up/down) saat nilainya berubah, mis. saldo setelah transaksi.
+ * Tetap persis sama dengan nilai akhir; animasi bisa dimatikan di Pengaturan.
+ */
+@Composable
+fun AnimatedMoney(
+    value: Long,
+    style: androidx.compose.ui.text.TextStyle,
+    modifier: Modifier = Modifier,
+    color: Color = Color.Unspecified,
+    fontWeight: FontWeight? = null,
+    withSign: Boolean = false,
+) {
+    val motion = com.moneytracker.app.LocalUi.current.motion
+    var from by remember { mutableStateOf(value) }
+    var target by remember { mutableStateOf(value) }
+    val progress = remember { Animatable(1f) }
+    LaunchedEffect(value) {
+        if (value == target) return@LaunchedEffect
+        from = if (progress.value < 1f) from + ((target - from) * progress.value.toDouble()).toLong() else target
+        target = value
+        if (!motion) { progress.snapTo(1f); return@LaunchedEffect }
+        progress.snapTo(0f)
+        progress.animateTo(1f, tween(900, easing = FastOutSlowInEasing))
+    }
+    val shown = if (progress.value >= 1f) target else from + ((target - from) * progress.value.toDouble()).toLong()
+    val delta = target - from
+    // Kilatan warna singkat: hijau bila naik, merah bila turun
+    val flash = if (progress.value < 1f && delta != 0L) (1f - progress.value) else 0f
+    val base = if (color == Color.Unspecified) androidx.compose.material3.LocalContentColor.current else color
+    val tint = if (flash > 0f) androidx.compose.ui.graphics.lerp(base, if (delta > 0) Fin.colors.income else Fin.colors.expense, flash * 0.8f) else base
+    Text(money(shown, withSign), style = style, color = tint, fontWeight = fontWeight, modifier = modifier, maxLines = 1)
+}
 
 @Composable
 fun StatTile(label: String, value: String, icon: ImageVector, tint: Color, modifier: Modifier = Modifier, sub: String? = null, onClick: (() -> Unit)? = null) {

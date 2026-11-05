@@ -1,5 +1,8 @@
 package com.moneytracker.app.ui.savings
 
+import com.moneytracker.app.ui.fx.CelebKind
+import com.moneytracker.app.ui.fx.Celebration
+import com.moneytracker.app.LocalUi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -138,6 +141,7 @@ fun SavingsScreen(s: Snapshot, nav: NavHostController) {
 @Composable
 private fun ContributeDialog(s: Snapshot, g: SavingsGoalEntity, onDismiss: () -> Unit) {
     val app = LocalApp.current
+    val ui = LocalUi.current
     val scope = rememberCoroutineScope()
     var mode by remember { mutableStateOf(0) }
     var amount by remember { mutableStateOf("") }
@@ -166,8 +170,19 @@ private fun ContributeDialog(s: Snapshot, g: SavingsGoalEntity, onDismiss: () ->
                 scope.launch {
                     try {
                         val millis = Fmt.toMillis(date.atTime(java.time.LocalTime.now()))
-                        if (mode == 0) app.repository.contributeGoal(g, walletId!!, amount.toAmount(), millis, "")
-                        else app.repository.withdrawGoal(g, walletId!!, amount.toAmount(), millis, "")
+                        val amt = amount.toAmount()
+                        if (mode == 0) {
+                            val p = s.goalProgress(g)
+                            app.repository.contributeGoal(g, walletId!!, amt, millis, "")
+                            ui.celebrate(Celebration(
+                                CelebKind.SAVINGS, amt, "Tabungan bertambah", from = s.walletMap[walletId!!],
+                                subtitle = "Disetor ke ${g.name}", goalBefore = p.ratio.toFloat(),
+                                goalAfter = if (g.target > 0) ((p.collected + amt).toDouble() / g.target).toFloat().coerceAtMost(1f) else null, goalName = g.name,
+                            ))
+                        } else {
+                            app.repository.withdrawGoal(g, walletId!!, amt, millis, "")
+                            ui.celebrate(Celebration(CelebKind.TRANSFER, amt, "Dana ditarik", s.walletMap[g.walletId ?: 0], s.walletMap[walletId!!], "Dari target ${g.name}"))
+                        }
                         onDismiss()
                     } catch (e: Repository.ValidationException) { error = e.message }
                 }

@@ -1,5 +1,8 @@
 package com.moneytracker.app.ui.more
 
+import com.moneytracker.app.ui.fx.CelebKind
+import com.moneytracker.app.ui.fx.Celebration
+import com.moneytracker.app.LocalUi
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -338,6 +341,7 @@ fun DebtsScreen(s: Snapshot, nav: NavHostController) {
 @Composable
 fun DebtDetailScreen(s: Snapshot, nav: NavHostController, id: Long) {
     val app = LocalApp.current
+    val ui = LocalUi.current
     val scope = rememberCoroutineScope()
     val d = s.debtMap[id]
     var pay by remember { mutableStateOf(false) }
@@ -401,7 +405,16 @@ fun DebtDetailScreen(s: Snapshot, nav: NavHostController, id: Long) {
                 },
                 confirmButton = {
                     TextButton(enabled = principal.toAmount() > 0 && walletId != null, onClick = {
-                        scope.launch { app.repository.payDebt(d, walletId!!, principal.toAmount(), interest.toAmount(), Fmt.toMillis(date.atTime(java.time.LocalTime.NOON)), "") }
+                        val amt = principal.toAmount()
+                        val left = (st.remaining - amt).coerceAtLeast(0)
+                        scope.launch { app.repository.payDebt(d, walletId!!, amt, interest.toAmount(), Fmt.toMillis(date.atTime(java.time.LocalTime.NOON)), "") }
+                        ui.celebrate(Celebration(
+                            if (d.direction == DebtDirection.PAYABLE) CelebKind.DEBT else CelebKind.INCOME, amt + interest.toAmount(),
+                            if (d.direction == DebtDirection.PAYABLE) "Pembayaran utang tercatat" else "Piutang diterima", from = s.walletMap[walletId!!],
+                            subtitle = if (left == 0L) "🎉 ${d.name} LUNAS!" else "Sisa ${d.name}: ${Fmt.rupiah(left)}",
+                            goalBefore = st.ratio.toFloat(), goalAfter = if (d.principal > 0) ((st.paid + amt).toDouble() / d.principal).toFloat().coerceAtMost(1f) else null,
+                            goalName = d.name,
+                        ))
                         pay = false
                     }) { Text("Simpan") }
                 },

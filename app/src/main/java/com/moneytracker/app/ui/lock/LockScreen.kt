@@ -1,5 +1,6 @@
 package com.moneytracker.app.ui.lock
 
+import com.moneytracker.app.LocalUi
 import androidx.compose.animation.core.Animatable
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -68,8 +69,10 @@ fun LockScreen(onUnlocked: () -> Unit) {
     var now by remember { mutableStateOf(System.currentTimeMillis()) }
     val lockedUntil = app.security.lockedUntil()
 
-    LaunchedEffect(Unit) {
-        if (app.security.biometricEnabled && activity.canUseBiometric()) activity.authenticateBiometric(onUnlocked)
+    val ui = LocalUi.current
+    // Tunggu animasi pembuka selesai sebelum memunculkan prompt sidik jari.
+    LaunchedEffect(ui.showIntro) {
+        if (!ui.showIntro && app.security.biometricEnabled && activity.canUseBiometric()) activity.authenticateBiometric(onUnlocked)
     }
     LaunchedEffect(lockedUntil, now) {
         if (lockedUntil > now) { delay(1000); now = System.currentTimeMillis() }
