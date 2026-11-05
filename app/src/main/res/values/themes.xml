@@ -1,0 +1,9 @@
+<resources>
+    <style name="Theme.MoneyTracker" parent="android:Theme.Material.NoActionBar">
+        <item name="android:windowBackground">@color/bg</item>
+        <item name="android:statusBarColor">@color/bg</item>
+        <item name="android:navigationBarColor">@color/bg</item>
+    </style>
+    <color name="bg">#FF0B0F1A</color>
+    <color name="brand">#FF7C5CFF</color>
+</resources>
