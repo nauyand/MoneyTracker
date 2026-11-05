@@ -1,5 +1,9 @@
 package com.moneytracker.app.ui.budget
 
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.foundation.border
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -101,9 +105,10 @@ fun BudgetScreen(s: Snapshot, @Suppress("UNUSED_PARAMETER") nav: NavHostControll
                 EmptyState("🎯", "Belum ada anggaran", "Tetapkan batas bulanan untuk makan, transportasi, bensin, belanja, hiburan, tagihan, dan tabungan.",
                     action = "Buat anggaran", onAction = { creating = true })
             }
-            items(statuses, key = { it.first.id }) { (b, st) ->
+            itemsIndexed(statuses, key = { _, it -> it.first.id }) { index, (b, st) ->
                 val cat = b.categoryId?.let { s.categoryMap[it] }
-                FinCard(onClick = { editing = b }) {
+                val over = !b.isSavings && st.level == BudgetStatus.Level.OVER
+                FinCard(Modifier.overBudgetShake(over, index, month.toString()), onClick = { editing = b }) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         EmojiIcon(if (b.isSavings) "🐷" else cat?.icon ?: "📁", Color(cat?.color ?: 0xFFB57CFF), 38.dp)
                         Spacer(Modifier.width(10.dp))
@@ -200,4 +205,29 @@ private fun BudgetDialog(s: Snapshot, existing: BudgetEntity?, onDismiss: () -> 
         },
         dismissButton = { TextButton(onClick = onDismiss) { Text("Batal") } },
     )
+}
+
+/**
+ * Efek getar untuk kartu anggaran yang terlampaui: bergetar saat tampil (bergantian per kartu)
+ * disertai getaran HP, lalu bingkai merah berdenyut terus.
+ */
+@Composable
+private fun Modifier.overBudgetShake(over: Boolean, index: Int, key: String): Modifier {
+    if (!over) return this
+    val motion = com.moneytracker.app.LocalUi.current.motion
+    val haptic = androidx.compose.ui.platform.LocalHapticFeedback.current
+    val shake = remember(key) { androidx.compose.animation.core.Animatable(0f) }
+    LaunchedEffect(key, motion) {
+        if (!motion) return@LaunchedEffect
+        kotlinx.coroutines.delay(350L + index * 140L)
+        haptic.performHapticFeedback(androidx.compose.ui.hapticfeedback.HapticFeedbackType.LongPress)
+        for (x in listOf(18f, -16f, 13f, -10f, 7f, -4f, 0f)) shake.animateTo(x, androidx.compose.animation.core.tween(55))
+    }
+    val pulse by androidx.compose.animation.core.rememberInfiniteTransition(label = "over").animateFloat(
+        0.25f, 0.9f, androidx.compose.animation.core.infiniteRepeatable(androidx.compose.animation.core.tween(900), androidx.compose.animation.core.RepeatMode.Reverse), label = "pulse",
+    )
+    val red = Fin.colors.expense
+    return this
+        .graphicsLayer { translationX = shake.value * density }
+        .border(2.dp, red.copy(alpha = if (motion) pulse else 0.7f), androidx.compose.foundation.shape.RoundedCornerShape(22.dp))
 }

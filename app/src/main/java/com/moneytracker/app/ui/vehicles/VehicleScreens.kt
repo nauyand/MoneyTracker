@@ -1,5 +1,6 @@
 package com.moneytracker.app.ui.vehicles
 
+import com.moneytracker.app.ui.fx.streakAfterNewRecord
 import com.moneytracker.app.ui.fx.CelebKind
 import com.moneytracker.app.ui.fx.Celebration
 import com.moneytracker.app.LocalUi
@@ -425,6 +426,7 @@ fun FuelFormScreen(s: Snapshot, nav: NavHostController, vehicleArg: Long, id: Lo
                         ui.celebrate(
                             Celebration(
                                 CelebKind.FUEL, cost, if (isNew) "Pengisian BBM tercatat" else "Perubahan disimpan", from = s.walletMap[w],
+                                streak = if (isNew) s.streakAfterNewRecord() else null,
                                 subtitle = "${Fmt.liters(volumeMl)} $fuelType · $vName" + (if (full) " · full tank" else "") +
                                     (s.walletMap[w]?.takeIf { isNew }?.let { "\nSaldo ${it.name} sekarang ${Fmt.rupiah(s.balance(it.id) - cost)}" } ?: ""),
                             ),

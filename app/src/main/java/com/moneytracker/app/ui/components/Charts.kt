@@ -46,6 +46,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.text.font.FontWeight
 import com.moneytracker.app.ui.theme.Fin
 import com.moneytracker.core.Fmt
 import kotlin.math.abs
@@ -256,27 +257,80 @@ fun DonutChart(slices: List<Slice>, modifier: Modifier = Modifier, centerLabel: 
     }
 }
 
-/** Indikator tangki BBM berbentuk busur. */
+/**
+ * Indikator tangki BBM dengan jarum. Saat tampil, jarum turun dari F ke posisi sisa BBM saat ini.
+ * Bila sisa < 20%: jarum bergetar, busur berdenyut merah, dan label E berkedip.
+ */
 @Composable
 fun FuelGauge(ratio: Float?, color: Color, modifier: Modifier = Modifier, size: Dp = 140.dp, content: @Composable () -> Unit) {
-    val progress = rememberEntrance(ratio)
+    val target = ratio?.coerceIn(0f, 1f)
+    val needle = remember { Animatable(1f) }
+    LaunchedEffect(target) {
+        if (target == null) return@LaunchedEffect
+        kotlinx.coroutines.delay(250)
+        needle.animateTo(target, androidx.compose.animation.core.spring(dampingRatio = 0.45f, stiffness = 40f))
+    }
+    val low = target != null && target < 0.2f
+    var t by remember { mutableStateOf(0f) }
+    LaunchedEffect(low) {
+        if (!low) return@LaunchedEffect
+        val start = androidx.compose.runtime.withFrameNanos { it }
+        while (true) androidx.compose.runtime.withFrameNanos { t = (it - start) / 1_000_000_000f }
+    }
     val track = Fin.colors.stroke
     val warn = Fin.colors.expense
+    val muted = Fin.colors.muted
+    val onSurface = MaterialTheme.colorScheme.onSurface
+    val measurer = rememberTextMeasurer()
+    val labelStyle = MaterialTheme.typography.labelSmall
     Box(modifier.size(size), contentAlignment = Alignment.Center) {
         Canvas(Modifier.size(size)) {
-            val stroke = this.size.width * 0.09f
+            val stroke = this.size.width * 0.08f
             val tl = Offset(stroke / 2, stroke / 2)
             val sz = Size(this.size.width - stroke, this.size.height - stroke)
+            val c = Offset(this.size.width / 2, this.size.height / 2)
+            val radius = sz.width / 2
+            val pulse = if (low) (0.5f + 0.5f * kotlin.math.sin(t * 6f)) else 0f
+            // busur latar & isi
             drawArc(track, 135f, 270f, false, tl, sz, style = Stroke(stroke, cap = StrokeCap.Round))
-            if (ratio != null) {
-                val c = if (ratio < 0.2f) warn else color
+            if (target != null) {
+                val col = if (low) warn else color
+                if (low) drawArc(warn.copy(alpha = 0.25f * pulse), 135f, 270f, false, tl, sz, style = Stroke(stroke * 1.9f, cap = StrokeCap.Round))
                 drawArc(
-                    Brush.sweepGradient(listOf(c.copy(alpha = 0.6f), c, c.copy(alpha = 0.6f))), 135f, 270f * ratio.coerceIn(0f, 1f) * progress, false, tl, sz,
+                    Brush.sweepGradient(listOf(col.copy(alpha = 0.55f), col, col.copy(alpha = 0.55f)), c), 135f, 270f * needle.value, false, tl, sz,
                     style = Stroke(stroke, cap = StrokeCap.Round),
                 )
             }
+            // garis skala
+            for (i in 0..8) {
+                val a = Math.toRadians((135.0 + 270.0 * i / 8)).toFloat()
+                val r1 = radius - stroke * 1.0f; val r2 = radius - stroke * (if (i % 4 == 0) 1.9f else 1.5f)
+                drawLine(muted.copy(alpha = 0.7f), Offset(c.x + kotlin.math.cos(a) * r1, c.y + kotlin.math.sin(a) * r1),
+                    Offset(c.x + kotlin.math.cos(a) * r2, c.y + kotlin.math.sin(a) * r2), strokeWidth = if (i % 4 == 0) 2.5f else 1.5f)
+            }
+            // label E & F
+            val eAlpha = if (low) 0.4f + 0.6f * pulse else 1f
+            val e = measurer.measure("E", labelStyle.copy(color = if (low) warn.copy(alpha = eAlpha) else muted, fontWeight = FontWeight.Bold))
+            val f = measurer.measure("F", labelStyle.copy(color = muted, fontWeight = FontWeight.Bold))
+            val ea = Math.toRadians(135.0).toFloat(); val fa = Math.toRadians(45.0).toFloat()
+            val lr = radius - stroke * 2.6f
+            drawText(e, topLeft = Offset(c.x + kotlin.math.cos(ea) * lr - e.size.width / 2, c.y + kotlin.math.sin(ea) * lr - e.size.height / 2))
+            drawText(f, topLeft = Offset(c.x + kotlin.math.cos(fa) * lr - f.size.width / 2, c.y + kotlin.math.sin(fa) * lr - f.size.height / 2))
+            // jarum
+            if (target != null) {
+                val tremble = if (low) kotlin.math.sin(t * 38f) * 1.6f + kotlin.math.sin(t * 13f) * 1.2f else 0f
+                val ang = Math.toRadians(135.0 + 270.0 * needle.value + tremble).toFloat()
+                val len = radius * 0.62f
+                val tip = Offset(c.x + kotlin.math.cos(ang) * len, c.y + kotlin.math.sin(ang) * len)
+                val tail = Offset(c.x - kotlin.math.cos(ang) * len * 0.15f, c.y - kotlin.math.sin(ang) * len * 0.15f)
+                drawLine(Color.Black.copy(alpha = 0.25f), tail + Offset(2f, 3f), tip + Offset(2f, 3f), strokeWidth = 4.dp.toPx(), cap = StrokeCap.Round)
+                drawLine(if (low) warn else onSurface, tail, tip, strokeWidth = 3.dp.toPx(), cap = StrokeCap.Round)
+                drawCircle(if (low) warn else color, 7.dp.toPx(), c)
+                drawCircle(onSurface, 3.dp.toPx(), c)
+            }
         }
-        content()
+        // isi teks di celah bawah busur
+        Box(Modifier.align(Alignment.BottomCenter).padding(bottom = size * 0.02f)) { content() }
     }
 }
 

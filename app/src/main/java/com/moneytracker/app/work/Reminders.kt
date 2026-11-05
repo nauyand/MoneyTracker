@@ -1,5 +1,6 @@
 package com.moneytracker.app.work
 
+import com.moneytracker.core.Streaks
 import android.Manifest
 import android.app.AlarmManager
 import android.app.PendingIntent
@@ -35,6 +36,7 @@ object Reminders {
     const val EXTRA_OPEN = "open"
     const val OPEN_NEW_TX = "tx_new"
     const val OPEN_WALLETS = "wallets"
+    const val OPEN_WRAPPED = "wrapped"
     private const val EXTRA_KINDS = "kinds"
     private const val EXTRA_AT = "at"
     private const val PREFS = "mt_reminders"
@@ -48,6 +50,8 @@ object Reminders {
             monthlyDays = ReminderSchedule.parseDays(p.getString("monthly_days", "1,25") ?: ""),
             monthlyTime = runCatching { LocalTime.parse(p.getString("monthly_time", "09:00")) }.getOrDefault(LocalTime.of(9, 0)),
             skipIfRecorded = p.getBoolean("skip_if_recorded", true),
+            streakEnabled = p.getBoolean("streak_enabled", true),
+            streakTime = runCatching { LocalTime.parse(p.getString("streak_time", "20:30")) }.getOrDefault(LocalTime.of(20, 30)),
         )
     }
 
@@ -59,6 +63,8 @@ object Reminders {
             .putString("monthly_days", c.monthlyDays.sorted().joinToString(","))
             .putString("monthly_time", "%02d:%02d".format(c.monthlyTime.hour, c.monthlyTime.minute))
             .putBoolean("skip_if_recorded", c.skipIfRecorded)
+            .putBoolean("streak_enabled", c.streakEnabled)
+            .putString("streak_time", "%02d:%02d".format(c.streakTime.hour, c.streakTime.minute))
             .apply()
         schedule(ctx, c)
     }
@@ -100,6 +106,15 @@ object Reminders {
                 OPEN_WALLETS, "Buka wallet",
             )
         }
+        if (ReminderKind.STREAK in kinds) {
+            val days = dao.recordTimestampsSince(Fmt.toMillis(at.toLocalDate().minusDays(400))).map { Fmt.toDate(it) }.toSet()
+            val st = Streaks.compute(days, at.toLocalDate())
+            if (test || st.atRisk) notify(
+                ctx, 9102, "🔥 Streak ${st.current} hari hampir putus!",
+                "Belum ada catatan hari ini. Catat satu transaksi sebelum tengah malam agar streak-mu terus menyala.",
+                OPEN_NEW_TX, "Catat sekarang",
+            )
+        }
         if (ReminderKind.DAILY in kinds) {
             val since = Fmt.toMillis(ReminderSchedule.windowStart(at, c.dailyTimes))
             val recorded = dao.countCreatedSince(since)
@@ -114,7 +129,7 @@ object Reminders {
         }
     }
 
-    private fun notify(ctx: Context, id: Int, title: String, text: String, open: String, actionLabel: String) {
+    fun notify(ctx: Context, id: Int, title: String, text: String, open: String, actionLabel: String) {
         if (Build.VERSION.SDK_INT >= 33 && ContextCompat.checkSelfPermission(ctx, Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) return
         val intent = Intent(ctx, MainActivity::class.java)
             .putExtra(EXTRA_OPEN, open)

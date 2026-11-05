@@ -1,5 +1,6 @@
 package com.moneytracker.app.ui
 
+import com.moneytracker.app.ui.fx.WrappedScreen
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInHorizontally
@@ -114,6 +115,7 @@ object Routes {
     const val IMPORT = "import"
     const val AUDIT = "audit"
     const val WALLET_ORDER = "wallets/order"
+    fun wrapped(month: java.time.YearMonth) = "wrapped?ym=$month"
 
     fun txForm(id: Long = 0, type: String = "", wallet: Long = 0, duplicate: Boolean = false) = "tx/edit?id=$id&type=$type&wallet=$wallet&dup=$duplicate"
     fun txDetail(id: Long) = "tx/detail/$id"
@@ -239,6 +241,10 @@ private fun AppNavHost(nav: NavHostController) {
         composable(Routes.IMPORT) { ImportScreen(s, back) }
         composable(Routes.AUDIT) { AuditScreen(back) }
         composable(Routes.WALLET_ORDER) { WalletOrderScreen(s, nav) }
+        composable("wrapped?ym={ym}", listOf(strArg("ym"))) { e ->
+            val ym = runCatching { java.time.YearMonth.parse(e.arguments!!.getString("ym")) }.getOrDefault(thisMonth().minusMonths(1))
+            WrappedScreen(s, ym) { nav.popBackStack() }
+        }
     }
 
     // Buka layar sesuai notifikasi pengingat yang diketuk.
@@ -248,6 +254,7 @@ private fun AppNavHost(nav: NavHostController) {
         when (open) {
             Reminders.OPEN_NEW_TX -> nav.navigate(Routes.txForm())
             Reminders.OPEN_WALLETS -> nav.navigateTop(Routes.WALLETS)
+            Reminders.OPEN_WRAPPED -> nav.navigate(Routes.wrapped(thisMonth().minusMonths(1)))
         }
         if (open != null) activity.pendingOpen.value = null
     }

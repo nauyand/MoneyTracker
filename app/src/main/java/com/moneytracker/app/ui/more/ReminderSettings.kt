@@ -76,7 +76,7 @@ fun ReminderSettingsCard() {
     }
 
     fun update(c: ReminderConfig) {
-        val turningOn = (c.dailyEnabled && !cfg.dailyEnabled) || (c.monthlyEnabled && !cfg.monthlyEnabled)
+        val turningOn = (c.dailyEnabled && !cfg.dailyEnabled) || (c.monthlyEnabled && !cfg.monthlyEnabled) || (c.streakEnabled && !cfg.streakEnabled)
         cfg = c
         Reminders.save(ctx, c)
         if (turningOn && Build.VERSION.SDK_INT >= 33 &&
@@ -137,6 +137,12 @@ fun ReminderSettingsCard() {
             BasisNote("Tanggal 29–31 otomatis dipindah ke hari terakhir pada bulan yang lebih pendek.")
         }
 
+        // ---------- Streak ----------
+        ToggleRow("Pengingat streak 🔥", "Diingatkan di malam hari bila hari ini belum mencatat dan streak akan putus", cfg.streakEnabled) {
+            update(cfg.copy(streakEnabled = it))
+        }
+        if (cfg.streakEnabled) TimeField("Jam pengingat streak", cfg.streakTime, { update(cfg.copy(streakTime = it)) })
+
         // ---------- Ringkasan ----------
         val next = remember(cfg) { Reminders.next(ctx) }
         Spacer(Modifier.height(8.dp))
@@ -149,7 +155,7 @@ fun ReminderSettingsCard() {
                 if (Build.VERSION.SDK_INT >= 33 && ContextCompat.checkSelfPermission(ctx, Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) {
                     permission.launch(Manifest.permission.POST_NOTIFICATIONS)
                 } else scope.launch {
-                    Reminders.fire(ctx, setOf(ReminderKind.DAILY), LocalDateTime.now(Fmt.zone), test = true)
+                    Reminders.fire(ctx, setOf(ReminderKind.DAILY, ReminderKind.STREAK), LocalDateTime.now(Fmt.zone), test = true)
                 }
             }) { Text("Kirim notifikasi uji") }
         }

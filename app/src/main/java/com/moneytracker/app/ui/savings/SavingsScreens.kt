@@ -1,5 +1,6 @@
 package com.moneytracker.app.ui.savings
 
+import com.moneytracker.app.ui.fx.streakAfterNewRecord
 import com.moneytracker.app.ui.fx.CelebKind
 import com.moneytracker.app.ui.fx.Celebration
 import com.moneytracker.app.LocalUi
@@ -176,7 +177,7 @@ private fun ContributeDialog(s: Snapshot, g: SavingsGoalEntity, onDismiss: () ->
                             app.repository.contributeGoal(g, walletId!!, amt, millis, "")
                             ui.celebrate(Celebration(
                                 CelebKind.SAVINGS, amt, "Tabungan bertambah", from = s.walletMap[walletId!!],
-                                subtitle = "Disetor ke ${g.name}", goalBefore = p.ratio.toFloat(),
+                                subtitle = "Disetor ke ${g.name}", goalBefore = p.ratio.toFloat(), streak = s.streakAfterNewRecord(),
                                 goalAfter = if (g.target > 0) ((p.collected + amt).toDouble() / g.target).toFloat().coerceAtMost(1f) else null, goalName = g.name,
                             ))
                         } else {

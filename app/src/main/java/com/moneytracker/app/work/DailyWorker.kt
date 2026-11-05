@@ -72,6 +72,18 @@ class DailyWorker(ctx: Context, params: WorkerParameters) : CoroutineWorker(ctx,
             else notify(app, MoneyTrackerApp.CHANNEL_BUDGET, n++, "Anggaran $name hampir habis", "${Fmt.percent(st.usage)} terpakai, sisa ${Fmt.rupiah(st.remaining)}")
             notified += key
         }
+        // Rekap bulan lalu siap (tanggal 1–3)
+        val prev = month.minusMonths(1)
+        val wrapKey = "wrap_$prev"
+        if (today.dayOfMonth <= 3 && wrapKey !in notified && s.transactions.any { YearMonth.from(Fmt.toDate(it.dateTime)) == prev }) {
+            val w = s.wrap(prev, today)
+            Reminders.notify(
+                app, 9103, "✨ Rekap ${Fmt.month(prev)} sudah siap!",
+                "Total pengeluaran ${Fmt.rupiah(w.expense)}" + (w.fuelFills.takeIf { it > 0 }?.let { " · BBM ${Fmt.rupiah(w.fuelCost)}" } ?: "") + ". Lihat hari paling hemat & pengeluaran terbesarmu.",
+                Reminders.OPEN_WRAPPED, "Lihat rekap",
+            )
+            notified += wrapKey
+        }
         app.security.notifiedKeys = notified
         return Result.success()
     }

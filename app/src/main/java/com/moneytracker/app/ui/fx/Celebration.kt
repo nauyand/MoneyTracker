@@ -1,5 +1,6 @@
 package com.moneytracker.app.ui.fx
 
+import com.moneytracker.core.Streaks
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.Spring
@@ -80,6 +81,8 @@ data class Celebration(
     val goalName: String? = null,
     /** Peringatan anggaran yang terlampaui/hampir habis karena transaksi ini. */
     val warning: String? = null,
+    /** Streak baru bila transaksi ini adalah catatan pertama hari ini (≥2 hari). */
+    val streak: Int? = null,
     val id: Long = System.nanoTime(),
 )
 
@@ -134,7 +137,7 @@ fun CelebrationOverlay(c: Celebration, onDone: () -> Unit) {
         while (t < 3f) withFrameNanos { t = (it - start) / 1_000_000_000f }
     }
     LaunchedEffect(c.id) {
-        delay(if (c.warning != null || goalReached) 2600 else 1800)
+        delay(if (c.warning != null || goalReached || c.streak != null) 2600 else 1800)
         scrim.animateTo(0f, tween(220))
         onDone()
     }
@@ -229,6 +232,23 @@ fun CelebrationOverlay(c: Celebration, onDone: () -> Unit) {
                     Box(Modifier.fillMaxWidth(goal.value.coerceIn(0f, 1f)).height(10.dp).clip(CircleShape).background(Brush.horizontalGradient(listOf(color.copy(alpha = 0.7f), color))))
                 }
                 Text(Fmt.percent(goal.value.toDouble()), style = MaterialTheme.typography.labelMedium, modifier = Modifier.padding(top = 4.dp))
+            }
+            c.streak?.let { n ->
+                Spacer(Modifier.height(12.dp))
+                val pop = ((t - 0.5f) / 0.35f).coerceIn(0f, 1f)
+                val milestone = Streaks.isMilestone(n)
+                Row(
+                    Modifier.graphicsLayer { scaleX = 0.6f + 0.4f * pop + (if (pop >= 1f) sin(t * 6f) * 0.02f else 0f); scaleY = scaleX; alpha = pop }
+                        .clip(RoundedCornerShape(14.dp)).background(Color(0xFFFF6A1A).copy(alpha = 0.16f)).padding(horizontal = 12.dp, vertical = 6.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    AnimatedFlame(30.dp, (n / 30f).coerceIn(0.3f, 1f))
+                    Spacer(Modifier.width(6.dp))
+                    Text(
+                        if (milestone) "Pencapaian! $n hari beruntun" else "Streak $n hari",
+                        style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.Bold, color = Color(0xFFFF8A3D),
+                    )
+                }
             }
             c.warning?.let {
                 Spacer(Modifier.height(12.dp))

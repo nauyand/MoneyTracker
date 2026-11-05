@@ -79,5 +79,11 @@ fun Snapshot.celebrationFor(tx: TransactionEntity, isNew: Boolean): Celebration 
             }
     }
 
-    return Celebration(kind, kotlin.math.abs(tx.amount), title, from, to, subtitle, goalBefore, goalAfter, goalName, warning)
+    return Celebration(kind, kotlin.math.abs(tx.amount), title, from, to, subtitle, goalBefore, goalAfter, goalName, warning, streak = if (isNew) streakAfterNewRecord() else null)
+}
+
+/** Streak setelah mencatat sekarang, bila ini catatan pertama hari ini dan streak ≥ 2. */
+fun Snapshot.streakAfterNewRecord(): Int? {
+    val st = streak()
+    return if (st.recordedToday) null else (st.current + 1).takeIf { it >= 2 }
 }

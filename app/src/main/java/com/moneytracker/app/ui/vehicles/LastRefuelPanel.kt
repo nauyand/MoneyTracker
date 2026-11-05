@@ -71,8 +71,8 @@ fun LastRefuelPanel(s: Snapshot, v: VehicleEntity, compact: Boolean = false, onA
             val ratio = r.remainingLiters?.let { rem -> cap?.let { (rem.value / it).toFloat() } }
             FuelGauge(ratio, MaterialTheme.colorScheme.primary, size = if (compact) 112.dp else 140.dp) {
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Text("Sisa ±", style = MaterialTheme.typography.labelSmall, color = Fin.colors.muted)
-                    Text(r.remainingLiters?.let { Fmt.decimal(it.value, 1) + " L" } ?: "?", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+                    Text(r.remainingLiters?.let { "±" + Fmt.decimal(it.value, 1) + " L" } ?: "?", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold,
+                        color = if (ratio != null && ratio < 0.2f) Fin.colors.expense else MaterialTheme.colorScheme.onSurface)
                     if (cap != null && r.remainingLiters != null) Text("dari ${Fmt.decimal(cap, 1)} L", style = MaterialTheme.typography.labelSmall, color = Fin.colors.muted)
                 }
             }
@@ -87,6 +87,10 @@ fun LastRefuelPanel(s: Snapshot, v: VehicleEntity, compact: Boolean = false, onA
             }
         }
         Spacer(Modifier.height(14.dp))
+        val lowFuel = r.remainingLiters?.let { rem -> v.tankCapacityMl?.let { capMl -> rem.value / (capMl / 1000.0) < 0.2 } } == true
+        if (lowFuel) {
+            Text("⛽ BBM menipis — segera isi ulang!", style = MaterialTheme.typography.titleSmall, color = Fin.colors.expense, modifier = Modifier.padding(bottom = 8.dp))
+        }
         r.suggestedRefillDate?.let { d ->
             val days = ChronoUnit.DAYS.between(today(), d)
             FinCard(color = MaterialTheme.colorScheme.primary.copy(alpha = 0.12f), padding = androidx.compose.foundation.layout.PaddingValues(12.dp)) {

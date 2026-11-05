@@ -83,6 +83,7 @@ fun MoreScreen(nav: NavHostController) {
             MenuItem("📆", "Langganan & Rutin", "Netflix, internet, hosting…", Routes.SUBSCRIPTIONS),
             MenuItem("🏠", "Aset", "Properti, kendaraan, emas…", Routes.ASSETS),
             MenuItem("✨", "Asisten Keuangan", "Insight dari data Anda", Routes.ASSISTANT),
+            MenuItem("🎁", "Rekap Bulanan", "Wrapped: ringkasan bulan lalu", Routes.wrapped(com.moneytracker.app.ui.thisMonth().minusMonths(1))),
         ),
         "Data" to listOf(
             MenuItem("📄", "Laporan", "PDF bulanan", Routes.REPORTS),

@@ -17,6 +17,8 @@ import com.moneytracker.core.GoalProgress
 import com.moneytracker.core.Ledger
 import com.moneytracker.core.OdometerEntry
 import com.moneytracker.core.RecurringKind
+import com.moneytracker.core.Streaks
+import com.moneytracker.core.Wrapped
 import com.moneytracker.core.RecurringSpec
 import com.moneytracker.core.Tx
 import com.moneytracker.core.TxType
@@ -179,6 +181,18 @@ class Snapshot(
     }
 
     val isEmpty: Boolean get() = wallets.isEmpty() && transactions.isEmpty()
+
+    // ---------- Kebiasaan ----------
+    /** Hari-hari pengguna mencatat manual (bukan impor / transaksi rutin otomatis). */
+    val recordDays: Set<LocalDate> by lazy {
+        transactions.filter { it.importKey == null && it.recurringId == null }.map { Fmt.toDate(it.createdAt) }.toSet()
+    }
+
+    fun streak(today: LocalDate = LocalDate.now(Fmt.zone)) = Streaks.compute(recordDays, today)
+
+    fun wrap(month: YearMonth, today: LocalDate = LocalDate.now(Fmt.zone)) = Wrapped.build(
+        month, txCore, catInfo, fuelLogs.map { Triple(it.dateTime, it.volumeMl, it.totalCost) }, today,
+    )
 }
 
 fun TransactionEntity.toCore() = Tx(

@@ -44,6 +44,7 @@ interface AppDao {
     @Query("SELECT * FROM debts WHERE archived = 0") suspend fun activeDebts(): List<DebtEntity>
     @Query("SELECT * FROM attachments WHERE transactionId = :txId") suspend fun attachmentsOf(txId: Long): List<AttachmentEntity>
     @Query("SELECT COUNT(*) FROM transactions WHERE createdAt >= :since") suspend fun countCreatedSince(since: Long): Int
+    @Query("SELECT createdAt FROM transactions WHERE createdAt >= :since AND importKey IS NULL AND recurringId IS NULL") suspend fun recordTimestampsSince(since: Long): List<Long>
     @Query("SELECT * FROM transactions WHERE dateTime >= :from AND dateTime < :to") suspend fun transactionsDatedBetween(from: Long, to: Long): List<TransactionEntity>
     @Query("UPDATE wallets SET sortOrder = :order, isMain = :main WHERE id = :id") suspend fun setWalletOrder(id: Long, order: Int, main: Boolean)
     @Query("SELECT COALESCE(MAX(sortOrder), 0) FROM wallets") suspend fun maxWalletOrder(): Int

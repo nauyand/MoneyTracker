@@ -1,5 +1,6 @@
 package com.moneytracker.app.ui.dashboard
 
+import com.moneytracker.app.ui.fx.StreakCard
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -144,6 +145,32 @@ fun DashboardScreen(s: Snapshot, nav: NavHostController) {
                         HeroMini("Kewajiban", money(nw.totalLiabilities), Modifier.weight(1f))
                         HeroMini("Net worth", money(nw.netWorth), Modifier.weight(1f))
                     }
+                }
+            }
+        }
+
+        // ---------- Streak ----------
+        if (s.transactions.isNotEmpty()) item {
+            val st = remember(s) { s.streak() }
+            StreakCard(st, animate = ui.motion) { nav.navigate(Routes.txForm()) }
+        }
+
+        // ---------- Rekap bulanan (Wrapped) ----------
+        val wrapMonth = if (today.dayOfMonth <= 7) month.minusMonths(1) else if (today.dayOfMonth >= month.lengthOfMonth() - 1) month else null
+        if (wrapMonth != null && s.transactions.any { java.time.YearMonth.from(Fmt.toDate(it.dateTime)) == wrapMonth }) item {
+            Box(
+                Modifier.fillMaxWidth().clip(RoundedCornerShape(22.dp))
+                    .background(androidx.compose.ui.graphics.Brush.linearGradient(listOf(Color(0xFFFF6A88), Color(0xFF7C5CFF), Color(0xFF3D8BFF))))
+                    .clickable { nav.navigate(Routes.wrapped(wrapMonth)) }.padding(18.dp),
+            ) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text("✨", fontSize = 30.sp)
+                    Spacer(Modifier.width(12.dp))
+                    Column(Modifier.weight(1f)) {
+                        Text("Rekap ${Fmt.month(wrapMonth)} siap!", style = MaterialTheme.typography.titleMedium, color = Color.White, fontWeight = FontWeight.Bold)
+                        Text("Pengeluaran terbesar, hari paling hemat, total BBM & lainnya", style = MaterialTheme.typography.bodySmall, color = Color.White.copy(alpha = 0.85f))
+                    }
+                    Text("▶", color = Color.White, fontSize = 20.sp)
                 }
             }
         }

@@ -271,3 +271,52 @@ class ReminderTest {
         assertEquals(setOf(1, 15, 31), ReminderSchedule.parseDays("15,1,31,40,x"))
     }
 }
+
+class HabitTest {
+    @BeforeTest fun zone() { Fmt.zone = ZoneId.of("Asia/Jakarta") }
+    private val today = LocalDate.of(2026, 11, 5)
+
+    @Test fun streakCountsBackFromToday() {
+        val days = setOf(today, today.minusDays(1), today.minusDays(2), today.minusDays(5), today.minusDays(6), today.minusDays(7), today.minusDays(8))
+        val s = Streaks.compute(days, today)
+        assertEquals(3, s.current); assertEquals(4, s.best); assertTrue(s.recordedToday); assertTrue(!s.atRisk)
+        assertEquals(7, s.nextMilestone)
+        assertEquals(7, s.last7.size); assertEquals(today, s.last7.last().first)
+    }
+
+    @Test fun streakAtRiskWhenNotRecordedToday() {
+        val s = Streaks.compute(setOf(today.minusDays(1), today.minusDays(2)), today)
+        assertEquals(2, s.current); assertTrue(s.atRisk)
+        assertEquals(0, Streaks.compute(setOf(today.minusDays(2)), today).current)
+    }
+
+    @Test fun streakReminderScheduled() {
+        val c = ReminderConfig(streakEnabled = true, streakTime = java.time.LocalTime.of(20, 30))
+        val n = ReminderSchedule.next(LocalDateTime.of(2026, 11, 5, 21, 0), c)!!
+        assertEquals(LocalDateTime.of(2026, 11, 6, 20, 30), n.at); assertEquals(setOf(ReminderKind.STREAK), n.kinds)
+    }
+
+    @Test fun wrapped() {
+        fun at(d: Int, h: Int = 12) = Fmt.toMillis(LocalDate.of(2026, 10, d).atTime(h, 0))
+        val cats = mapOf(1L to CategoryInfo(1, "Makan", null, CategoryKind.EXPENSE), 2L to CategoryInfo(2, "Transportasi", null, CategoryKind.EXPENSE))
+        val txs = listOf(
+            Tx(1, TxType.INCOME, 8_000_000, walletId = 1, dateTime = at(25)),
+            Tx(2, TxType.EXPENSE, 30_000, walletId = 2, categoryId = 1, dateTime = at(1), description = "Kopi Kenangan"),
+            Tx(3, TxType.EXPENSE, 28_000, walletId = 2, categoryId = 1, dateTime = at(2), description = "kopi kenangan "),
+            Tx(4, TxType.EXPENSE, 900_000, walletId = 1, categoryId = 2, dateTime = at(10), description = "Servis"),
+            Tx(5, TxType.TRANSFER, 500_000, walletId = 1, toWalletId = 2, dateTime = at(3)),
+            Tx(6, TxType.EXPENSE, 10_000, walletId = 2, categoryId = 1, dateTime = Fmt.toMillis(LocalDate.of(2026, 9, 5).atTime(9, 0))),
+        )
+        val fuel = listOf(Triple(at(4), 4_000L, 50_000L), Triple(at(9), 3_500L, 43_000L))
+        val w = Wrapped.build(java.time.YearMonth.of(2026, 10), txs, cats, fuel, today)
+        assertEquals(958_000, w.expense)
+        assertEquals(2L to 900_000L, w.topCategory)
+        assertEquals(4L, w.biggest!!.id)
+        assertEquals(LocalDate.of(2026, 10, 10), w.priciestDay!!.first)
+        assertEquals(LocalDate.of(2026, 10, 2), w.thriftiestDay!!.first)
+        assertEquals(31 - 3, w.noSpendDays)
+        assertEquals("Kopi Kenangan", w.topMerchant!!.first); assertEquals(2, w.topMerchant!!.second)
+        assertEquals(93_000, w.fuelCost); assertEquals(7.5, w.fuelLiters, 0.001); assertEquals(2, w.fuelFills)
+        assertEquals(10_000, w.prevExpense)
+    }
+}

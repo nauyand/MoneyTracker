@@ -4,7 +4,7 @@ import java.time.LocalDate
 import java.time.LocalDateTime
 import java.time.LocalTime
 
-enum class ReminderKind { DAILY, MONTHLY }
+enum class ReminderKind { DAILY, MONTHLY, STREAK }
 
 /**
  * Pengaturan pengingat pencatatan.
@@ -19,6 +19,9 @@ data class ReminderConfig(
     val monthlyDays: Set<Int> = emptySet(),
     val monthlyTime: LocalTime = LocalTime.of(9, 0),
     val skipIfRecorded: Boolean = true,
+    /** Peringatan malam bila streak akan putus (hari ini belum mencatat). */
+    val streakEnabled: Boolean = false,
+    val streakTime: LocalTime = LocalTime.of(20, 30),
 )
 
 data class NextReminder(val at: LocalDateTime, val kinds: Set<ReminderKind>)
@@ -53,6 +56,12 @@ object ReminderSchedule {
                     if (dt.isAfter(nowMin)) { candidates += dt to ReminderKind.MONTHLY; return@repeat }
                 }
                 day = day.plusDays(1)
+            }
+        }
+        if (c.streakEnabled) {
+            for (offset in 0L..1L) {
+                val dt = nowMin.toLocalDate().plusDays(offset).atTime(c.streakTime.withSecond(0).withNano(0))
+                if (dt.isAfter(nowMin)) { candidates += dt to ReminderKind.STREAK; break }
             }
         }
         val first = candidates.minOfOrNull { it.first } ?: return null
