@@ -70,6 +70,16 @@ Saldo wallet **tidak pernah disimpan**. Saldo selalu dihitung dari `saldo awal +
 - Panel **Last Refuel Analysis** menampilkan: tanggal & volume pengisian terakhir, biaya, hari sejak isi, km tempuh, L/hari, Rp/hari, km/L, Rp/km, estimasi sisa liter, tanggal disarankan isi ulang (cadangan 15%), dan perkiraan habis.
 - Setiap pengisian BBM otomatis membuat transaksi pengeluaran (Transportasi › jenis BBM) di wallet yang dipilih.
 
+## Widget layar utama
+
+Widget **Catat cepat** (ukuran 4×1, bisa diubah) berisi tombol **− Pengeluaran** dan **+ Pemasukan**. Menekan salah satunya membuka lembar input kecil langsung di atas wallpaper, jadi aplikasi tidak perlu dibuka:
+
+- Isi nominal, pilih kategori (yang paling sering dipakai muncul paling depan), wallet, dan deskripsi opsional, lalu **Simpan**.
+- Logo pada widget membuka aplikasi penuh. Tombol “Isi lengkap di aplikasi” membuka form transaksi lengkap.
+- Lembar ini tidak meminta PIN. Karena itu ia **tidak menampilkan saldo atau riwayat**, hanya bisa menambah transaksi baru. Setiap transaksi tetap masuk ke audit log.
+
+Cara memasang: tekan lama layar utama → Widget → MoneyTracker → seret **Catat cepat** ke layar.
+
 ## Keamanan & data
 
 - PIN 6 digit disimpan sebagai **hash PBKDF2-HMAC-SHA256 (120.000 iterasi) + salt**. Setelah 5 kali salah, aplikasi terkunci sementara.

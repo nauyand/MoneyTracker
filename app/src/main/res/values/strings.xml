@@ -1,3 +1,5 @@
 <resources>
     <string name="app_name">MoneyTracker</string>
+    <string name="widget_name">Catat cepat</string>
+    <string name="widget_description">Catat pemasukan &amp; pengeluaran langsung dari layar utama</string>
 </resources>
