@@ -27,6 +27,7 @@ core/   Logika keuangan murni Kotlin (tanpa Android), lengkap dengan unit test
         ├─ Planning.kt      anggaran + rollover, target tabungan, jadwal berulang, utang
         ├─ Insights.kt      asisten keuangan berbasis data
         ├─ Analytics.kt     agregasi harian/mingguan/bulanan/tahunan
+        ├─ QuickParser.kt   kalimat bebas ("jajan 10rb") → draf transaksi
         └─ TableIO.kt       parser CSV, baca/tulis XLSX, pemetaan impor mutasi bank
 app/    Aplikasi Android
         ├─ data/            Room entities, DAO, Repository, Snapshot, backup, ekspor
@@ -78,7 +79,31 @@ Widget **Catat cepat** (ukuran 4×1, bisa diubah) berisi tombol **− Pengeluara
 - Logo pada widget membuka aplikasi penuh. Tombol “Isi lengkap di aplikasi” membuka form transaksi lengkap.
 - Lembar ini tidak meminta PIN. Karena itu ia **tidak menampilkan saldo atau riwayat**, hanya bisa menambah transaksi baru. Setiap transaksi tetap masuk ke audit log.
 
-Cara memasang: tekan lama layar utama → Widget → MoneyTracker → seret **Catat cepat** ke layar.
+Cara memasang: tekan lama layar utama → Widget → MoneyTracker → seret **Catat cepat** atau **Ketik cepat** ke layar.
+
+### Widget “Ketik cepat”
+
+Widget kedua berisi kotak **Ketik** dan tombol **mikrofon**. Tulis atau ucapkan seperti chat, satu transaksi per baris:
+
+```
+jajan 10rb
+bensin50rb
+gaji 100000
+semuanya masuk ke rek 1
+uang bayar wifi
+rek 2
+```
+
+Aplikasi menebak jenis, nominal, kategori, dan wallet, lalu **menampilkan hasilnya dulu**. Setiap baris bisa dikoreksi (ketuk label jenis, kategori, atau wallet) sebelum **Simpan semua**.
+
+Cara kerjanya ada di `core/QuickParser.kt` dan bukan AI/LLM. Semuanya berjalan offline di HP:
+
+- **Nominal**: `10000`, `10.000`, `Rp10.000`, `10rb`, `10 ribu`, `10k`, `1,5jt`, `1jt500`, `sepuluh ribu`, `goceng`, `ceban`. Angka kecil tanpa satuan (`jajan 10`) dibaca ribuan dan diberi tanda.
+- **Jenis**: sistem poin. Kata kunci pemasukan (`gaji`, `masuk`, `terima`, `bonus`, …) dan pengeluaran (`jajan`, `beli`, `bayar`, `bensin`, …) masing-masing bernilai poin, ditambah kebiasaan dari riwayat transaksi Anda. Salah ketik 1 huruf (`gji`, `jjan`) tetap dikenali. Tanpa petunjuk sama sekali, transaksi dianggap pengeluaran.
+- **Kategori**: riwayat Anda dulu (mis. “seblak” biasanya Anda catat ke Makan), lalu nama kategori, lalu kamus bawaan.
+- **Wallet**: nama wallet atau penyedia (`bca`, `gopay`, `cash`), atau `rek 1` = wallet urutan pertama. Baris `semua ke bca` berlaku untuk semua baris, baris yang hanya berisi `rek 2` berlaku untuk baris di atasnya.
+- **Tanpa nominal**: bila namanya cocok dengan tagihan rutin/langganan (mis. WiFi), nominal diambil dari sana. Bila tidak, Anda diminta mengisinya.
+- Satu baris boleh berisi beberapa transaksi: `bensin 50rb parkir 5rb`.
 
 ## Keamanan & data
 
