@@ -2,4 +2,6 @@
     <string name="app_name">MoneyTracker</string>
     <string name="widget_name">Catat cepat</string>
     <string name="widget_description">Catat pemasukan &amp; pengeluaran langsung dari layar utama</string>
+    <string name="widget_smart_name">Ketik cepat</string>
+    <string name="widget_smart_description">Ketik atau ucapkan seperti chat, mis. \"jajan 10rb\" atau \"gaji 5jt bca\"</string>
 </resources>

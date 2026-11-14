@@ -50,6 +50,27 @@
                 android:resource="@xml/widget_quick_add_info" />
         </receiver>
 
+        <!-- Widget "Ketik cepat": kalimat bebas / suara → transaksi (QuickParser). -->
+        <activity
+            android:name=".widget.SmartAddActivity"
+            android:excludeFromRecents="true"
+            android:exported="false"
+            android:label="@string/widget_smart_name"
+            android:taskAffinity=""
+            android:theme="@style/Theme.MoneyTracker.QuickAdd"
+            android:windowSoftInputMode="adjustResize" />
+        <receiver
+            android:name=".widget.SmartAddWidget"
+            android:exported="false"
+            android:label="@string/widget_smart_name">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/widget_smart_add_info" />
+        </receiver>
+
         <receiver android:name=".work.ReminderReceiver" android:exported="false" />
         <receiver android:name=".work.RescheduleReceiver" android:exported="true">
             <intent-filter>
